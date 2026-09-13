@@ -409,19 +409,20 @@ class PFFLApp {
         pointLogs = playPoints.map(pt => `+${pt.toFixed(1)}`);
 
         // Convert base hour/minute into a minute representation to easily subtract minutes
-        let baseHour = 3;
-        let baseMin = 45;
+        const now = new Date();
+        let baseHour = now.getHours() % 12 || 12;
+        let baseMin = Math.max(0, now.getMinutes() - 5);
         let baseDay = "Sun";
         
         // Restore real-world day overrides so historical data isn't blatantly wrong
         if (cleanName.toLowerCase().includes("strange")) {
-          baseDay = "Sun"; baseHour = 3; baseMin = 54; isBigPlay = true; isTD = true; baseStartYard = 82; baseYards = 18;
+          baseDay = "Sun"; baseHour = now.getHours() % 12 || 12; baseMin = Math.max(0, now.getMinutes() - 2); isBigPlay = true; isTD = true; baseStartYard = 82; baseYards = 18;
           detailedPlayDesc = `🚨 TOUCHDOWN! Brenton Strange 18 yd pass reception from Trevor Lawrence down to end zone (+${playPoints[0].toFixed(1)} pts)`;
         } else if (cleanName.toLowerCase().includes("st. brown") || cleanName.toLowerCase().includes("brown")) {
-          baseDay = "Sun"; baseHour = 3; baseMin = 55; isBigPlay = true; isTD = true; baseStartYard = 60; baseYards = 40;
+          baseDay = "Sun"; baseHour = now.getHours() % 12 || 12; baseMin = Math.max(0, now.getMinutes() - 1); isBigPlay = true; isTD = true; baseStartYard = 60; baseYards = 40;
           detailedPlayDesc = `🚨 TOUCHDOWN! ${cleanName} 40 yard pass reception from Jared Goff down to end zone (+${playPoints[0].toFixed(1)} pts)`;
         } else if (cleanName.toLowerCase().includes("tuten")) {
-          baseDay = "Sun"; baseHour = 3; baseMin = 53; baseStartYard = 68; baseYards = 18;
+          baseDay = "Sun"; baseHour = now.getHours() % 12 || 12; baseMin = Math.max(0, now.getMinutes() - 3); baseStartYard = 68; baseYards = 18;
           detailedPlayDesc = `Bhayshul Tuten 18 yard rush off left tackle down to opponent 14 yard line (+${playPoints[0].toFixed(1)} pts)`;
         } else if (cleanName.toLowerCase().includes("adams")) {
           baseDay = "Thu"; baseHour = 8; baseMin = 40; isBigPlay = true; baseStartYard = 60; baseYards = 24;
