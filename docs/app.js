@@ -288,26 +288,28 @@ class PFFLApp {
         const part2 = (scoreNum * 0.6).toFixed(1);
         pointLogs = [`+${part1}`, `+${part2}`];
 
-        const ydsGain = Math.round(scoreNum * 8.2);
-        const downYard = Math.max(4, 50 - ydsGain);
+        // Realistically cap single-play yardage (between 8 and 38 yards, NEVER > 45 yards)
+        const ydsGain = Math.min(38, Math.max(8, Math.round(scoreNum * 1.8)));
 
         if (cleanName.toLowerCase().includes("adams")) {
-          detailedPlayDesc = "Davante Adams completed 46 yard pass reception down to SF 6 yard line";
+          detailedPlayDesc = "Davante Adams completed 24 yard pass reception from Matthew Stafford down to SF 16 yard line";
+        } else if (cleanName.toLowerCase().includes("samuel")) {
+          detailedPlayDesc = "Deebo Samuel 28 yard pass reception from Brock Purdy down to DEN 14 yard line";
         } else if (pos === 'WR' || pos === 'TE') {
-          detailedPlayDesc = `${cleanName} completed ${ydsGain} yard pass reception down to opponent ${downYard} yard line`;
+          detailedPlayDesc = `${cleanName} completed ${ydsGain} yard pass reception down to opponent 18 yard line`;
         } else if (pos === 'RB') {
-          detailedPlayDesc = `${cleanName} ${ydsGain} yard rush to the left down to opponent ${downYard} yard line`;
+          detailedPlayDesc = `${cleanName} ${ydsGain} yard rush to the left down to opponent 22 yard line`;
         } else if (pos === 'QB') {
           detailedPlayDesc = `${cleanName} pass complete for ${ydsGain} yards downfield`;
         } else if (pos === 'K') {
-          detailedPlayDesc = `${cleanName} 48 yard field goal GOOD`;
+          detailedPlayDesc = `${cleanName} 42 yard field goal GOOD`;
         } else {
-          detailedPlayDesc = `${cleanName} defensive stop for loss of 4 yards`;
+          detailedPlayDesc = `${cleanName} defensive sack for loss of 6 yards`;
         }
 
         last5Plays = [
-          { startYard: 35, yards: Math.round(scoreNum * 3), pts: `+${scoreNum.toFixed(2)}`, isPos: true, desc: detailedPlayDesc },
-          { startYard: 20, yards: 14, pts: `+${part2}`, isPos: true, desc: `${cleanName} 14 yd gain` }
+          { startYard: 35, yards: ydsGain, pts: `+${scoreNum.toFixed(2)}`, isPos: true, desc: detailedPlayDesc },
+          { startYard: 20, yards: 12, pts: `+${part2}`, isPos: true, desc: `${cleanName} 12 yd gain` }
         ];
       } else {
         pointLogs = [upcomingGameInfo];
@@ -376,7 +378,6 @@ class PFFLApp {
     `;
   }
 
-  // Realistic Play-by-Play Stream Formatting
   createRunningStreamHTML(startersList, isOpponent) {
     const activeStarters = startersList.filter(p => p.scoreNum > 0);
     if (activeStarters.length === 0) {
@@ -385,9 +386,6 @@ class PFFLApp {
 
     return activeStarters.map(p => {
       let playString = p.detailedPlayDesc;
-      if (p.name.toLowerCase().includes("adams")) {
-        playString = "Davante Adams completed 46 yard pass reception down to SF 6 yard line";
-      }
 
       return `
         <div class="play-item" data-id="${p.id}">
