@@ -217,8 +217,11 @@ class PFFLApp {
         try {
           const sResp = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=${gid}`);
           const sData = await sResp.json();
-          if (sData.drives && sData.drives.previous) {
-            for (const drive of sData.drives.previous) {
+          if (sData.drives) {
+            let allDrives = [];
+            if (sData.drives.previous) allDrives = allDrives.concat(sData.drives.previous);
+            if (sData.drives.current) allDrives = allDrives.concat(sData.drives.current);
+            for (const drive of allDrives) {
               if (!drive.plays) continue;
               for (const play of drive.plays) {
                 if (play.id) this.seenESPNPlayIds.add(play.id);
@@ -646,6 +649,16 @@ class PFFLApp {
       let timeStamp = "";
       let timeSortWeight = 0;
       let isBigPlay = false;
+      
+      if (this.playerHistoryCache.has(pObj.id)) {
+         const cached = this.playerHistoryCache.get(pObj.id);
+         if (cached.last5Plays) last5Plays = [...cached.last5Plays];
+         if (cached.pointLogs) pointLogs = [...cached.pointLogs];
+         detailedPlayDesc = cached.desc || "";
+         timeStamp = cached.timeStamp || "";
+         timeSortWeight = cached.timeSortWeight || 0;
+         isBigPlay = cached.isBigPlay || false;
+      }
       let isTD = false;
       
       let baseStartYard = 30;
