@@ -73,13 +73,18 @@ class PFFLApp {
 
   async loadData() {
     try {
+      // Direct live scoring fetch from MFL with fallback to local docs/data
+      const liveScoringPromise = fetch('https://www44.myfantasyleague.com/2026/export?TYPE=liveScoring&L=44108&JSON=1')
+        .then(r => r.json())
+        .catch(() => fetch('data/liveScoring.json?t=' + Date.now()).then(r => r.json()));
+
       const [leagueRes, rostersRes, playersRes, txRes, projRes, liveRes, syncRes] = await Promise.all([
         fetch('data/league.json').then(r => r.json()).catch(() => ({})),
         fetch('data/rosters.json').then(r => r.json()).catch(() => ({})),
         fetch('data/players.json').then(r => r.json()).catch(() => ({})),
         fetch('data/transactions.json').then(r => r.json()).catch(() => ({})),
         fetch('data/projectedScores.json').then(r => r.json()).catch(() => ({})),
-        fetch('data/liveScoring.json').then(r => r.json()).catch(() => ({})),
+        liveScoringPromise,
         fetch('data/sync_status.json').then(r => r.json()).catch(() => ({}))
       ]);
 
@@ -109,7 +114,10 @@ class PFFLApp {
   startLivePolling() {
     this.livePollingTimer = setInterval(async () => {
       try {
-        const liveRes = await fetch('data/liveScoring.json?t=' + Date.now()).then(r => r.json());
+        const liveRes = await fetch('https://www44.myfantasyleague.com/2026/export?TYPE=liveScoring&L=44108&JSON=1')
+          .then(r => r.json())
+          .catch(() => fetch('data/liveScoring.json?t=' + Date.now()).then(r => r.json()));
+
         if (liveRes && liveRes.liveScoring) {
           this.liveScoringData = liveRes.liveScoring;
           this.lastSyncTime = new Date().toLocaleTimeString();
@@ -288,13 +296,18 @@ class PFFLApp {
         const part2 = (scoreNum * 0.6).toFixed(1);
         pointLogs = [`+${part1}`, `+${part2}`];
 
-        // Realistically cap single-play yardage (between 8 and 38 yards, NEVER > 45 yards)
         const ydsGain = Math.min(38, Math.max(8, Math.round(scoreNum * 1.8)));
 
         if (cleanName.toLowerCase().includes("adams")) {
           detailedPlayDesc = "Davante Adams completed 24 yard pass reception from Matthew Stafford down to SF 16 yard line";
         } else if (cleanName.toLowerCase().includes("samuel")) {
           detailedPlayDesc = "Deebo Samuel 28 yard pass reception from Brock Purdy down to DEN 14 yard line";
+        } else if (cleanName.toLowerCase().includes("jackson")) {
+          detailedPlayDesc = "Lamar Jackson 24 yard pass completion to Zay Flowers";
+        } else if (cleanName.toLowerCase().includes("lawrence")) {
+          detailedPlayDesc = "Trevor Lawrence 26 yard touchdown pass to Brian Thomas Jr.";
+        } else if (cleanName.toLowerCase().includes("smith-njigba")) {
+          detailedPlayDesc = "Jaxon Smith-Njigba 36 yard pass reception from Sam Darnold";
         } else if (pos === 'WR' || pos === 'TE') {
           detailedPlayDesc = `${cleanName} completed ${ydsGain} yard pass reception down to opponent 18 yard line`;
         } else if (pos === 'RB') {
