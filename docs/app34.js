@@ -105,6 +105,7 @@ class PFFLApp {
                 }
                 
                 const fireTestAlert = () => {
+                    alert("Debug: Button Clicked! Perm is: " + Notification.permission);
                     showMsg("Firing Test Push...");
                     btnNotif.style.opacity = "0.5";
                     const title = "🚨 L.McConkey (+10.5 pts)";
@@ -115,17 +116,22 @@ class PFFLApp {
                         vibrate: [200, 100, 200]
                     };
                     if ('serviceWorker' in navigator) {
-                        navigator.serviceWorker.getRegistration().then(reg => {
+                        navigator.serviceWorker.ready.then(reg => {
                             if (reg) {
-                                reg.showNotification(title, opts).catch(e => showMsg("SW Push Err: " + e.message));
-                                showMsg("Sent via SW!");
+                                alert("Debug: Found SW. Firing showNotification...");
+                                reg.showNotification(title, opts).then(() => {
+                                    alert("Debug: SW Push Promise Resolved!");
+                                }).catch(e => {
+                                    alert("Debug: SW Push Error: " + e.message);
+                                });
                             } else {
-                                showMsg("No SW. Fallback...");
-                                try { new Notification(title, opts); } catch(ex) { showMsg("Fallback Err: " + ex.message); }
+                                alert("Debug: SW is ready but reg is null!");
                             }
-                        }).catch(e => showMsg("SW Reg Err: " + e.message));
+                        }).catch(e => {
+                            alert("Debug: SW Ready Promise Error: " + e.message);
+                        });
                     } else {
-                        try { new Notification(title, opts); } catch(e) { showMsg("Fallback Err: " + e.message); }
+                        alert("Debug: No serviceWorker in navigator.");
                     }
                 };
 
