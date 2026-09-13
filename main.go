@@ -50,10 +50,18 @@ func main() {
 
 	// Save sync meta
 	metaPath := filepath.Join(DocsData, "sync_status.json")
+	
+	source := os.Getenv("SYNC_SOURCE")
+	if source == "" {
+		source = "Unknown"
+	}
+	
 	metaData, _ := json.MarshalIndent(map[string]interface{}{
 		"last_sync": time.Now().Format("03:04:05 PM"),
 		"league_id": LeagueID,
 		"year":      Year,
+		"timestamp": time.Now().UnixMilli(),
+		"source":    source,
 	}, "", "  ")
 	os.WriteFile(metaPath, metaData, 0644)
 
