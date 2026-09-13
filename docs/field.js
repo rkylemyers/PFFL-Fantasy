@@ -203,16 +203,16 @@ class FootballField {
       }
 
       let startX, endX;
+      // play.startYard represents yards from the team's OWN goal line (0 to 100)
+      // 0-50 is own territory, 50-100 is opponent's territory
       if (!isRightToLeft) {
-        // Left-to-Right progression (My Team: Mentalcow driving towards Warhorse End Zone)
-        // 0 = My Goal Line (100 px), 100 = Opponent Goal Line (1100 px)
+        // Left-to-Right (Home Team). Own goal line is at Left (X=10)
         startX = (10 + Math.min(100, Math.max(0, play.startYard))) * this.yardWidth;
         endX = (10 + Math.min(100, Math.max(0, play.startYard + play.yards))) * this.yardWidth;
       } else {
-        // Right-to-Left progression (Opponent Team: Warhorse driving towards Mentalcow End Zone)
-        // play.startYard is position relative to Mentalcow's Goal Line (0 = Mentalcow Goal Line, 100 = Warhorse Goal Line)
-        startX = (10 + Math.min(100, Math.max(0, play.startYard))) * this.yardWidth;
-        endX = (10 + Math.max(0, play.startYard - play.yards)) * this.yardWidth;
+        // Right-to-Left (Away Team). Own goal line is at Right (X=110)
+        startX = (110 - Math.min(100, Math.max(0, play.startYard))) * this.yardWidth;
+        endX = (110 - Math.min(100, Math.max(0, play.startYard + play.yards))) * this.yardWidth;
       }
 
       const boxMinX = Math.min(startX, endX);
@@ -276,12 +276,14 @@ class FootballField {
 
       // 5. Dark High-Contrast Background Pill & Extra Large Label Text
       let labelText = "";
+      let pName = playerMeta ? playerMeta.name.split(' ').slice(-1)[0].toUpperCase() : "PLAYER";
       if (isTD) {
-        labelText = `🚨 TOUCHDOWN! ${play.pts} PTS`;
+        labelText = `🚨 TD! ${pName} ${play.pts} PTS`;
       } else if (isBigPlay) {
-        labelText = `🚨 BIG PLAY (+${play.yards} YDS)! ${play.pts} PTS`;
+        labelText = `🚨 BIG PLAY! ${pName} ${play.pts} PTS`;
       } else {
-        labelText = index === 0 ? `🔥 RECENT PLAY: ${play.pts} PTS` : `PLAY -${index}: ${play.pts} PTS`;
+        labelText = `${pName}: ${play.pts} PTS`;
+      } PTS` : `PLAY -${index}: ${play.pts} PTS`;
       }
 
       const fontSize = index === 0 ? 20 : Math.max(15, Math.round(18 * shrinkFactor));

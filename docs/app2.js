@@ -270,9 +270,12 @@ class PFFLApp {
       });
     });
 
-    const activeStarter = team1Starters.find(p => p.scoreNum > 0) || team1Starters[0];
-    if (activeStarter) {
-      this.field.renderPlayerLast5Plays(activeStarter.last5Plays, false, activeStarter);
+    const mostRecentMyPlayer = [...team1Starters]
+      .filter(p => p.scoreNum > 0 && p.last5Plays && p.last5Plays.length > 0)
+      .sort((a, b) => b.timeSortWeight - a.timeSortWeight)[0] || team1Starters[0];
+    if (mostRecentMyPlayer) {
+      document.getElementById("current-play-summary").textContent = `Mapping field plays for ${mostRecentMyPlayer.name} (${f1Meta.name})`;
+      this.field.renderPlayerLast5Plays(mostRecentMyPlayer.last5Plays, false, mostRecentMyPlayer);
     }
   }
 
@@ -335,44 +338,48 @@ class PFFLApp {
           baseHour = 2; baseMin = 22; timeSortWeight = 1422; isBigPlay = true; isTD = true; baseStartYard = 82; baseYards = 18;
           detailedPlayDesc = `🚨 TOUCHDOWN! Brenton Strange 18 yd pass reception from Trevor Lawrence down to end zone (+${playPoints[0].toFixed(1)} pts)`;
         } else if (cleanName.toLowerCase().includes("st. brown") || cleanName.toLowerCase().includes("brown")) {
-          baseHour = 1; baseMin = 54; timeSortWeight = 1354; isBigPlay = true; baseStartYard = 60; baseYards = 22;
-          detailedPlayDesc = `${cleanName} 22 yard pass reception from Jared Goff down to 18 yard line (+${playPoints[0].toFixed(1)} pts)`;
+          baseHour = 3; baseMin = 10; timeSortWeight = 1510; isBigPlay = true; isTD = true; baseStartYard = 60; baseYards = 40;
+          detailedPlayDesc = `🚨 TOUCHDOWN! ${cleanName} 40 yard pass reception from Jared Goff down to end zone (+${playPoints[0].toFixed(1)} pts)`;
         } else if (cleanName.toLowerCase().includes("tuten")) {
           baseHour = 2; baseMin = 45; timeSortWeight = 1445; baseStartYard = 68; baseYards = 18;
-          detailedPlayDesc = `Bhayshul Tuten 18 yard rush off left tackle down to 14 yard line (+${playPoints[0].toFixed(1)} pts)`;
+          detailedPlayDesc = `Bhayshul Tuten 18 yard rush off left tackle down to opponent 14 yard line (+${playPoints[0].toFixed(1)} pts)`;
         } else if (cleanName.toLowerCase().includes("adams")) {
           baseDay = "Fri"; baseHour = 8; baseMin = 40; timeSortWeight = 940; isBigPlay = true; baseStartYard = 60; baseYards = 24;
-          detailedPlayDesc = `${cleanName} 24 yard pass reception from Gardner Minshew down to 16 yard line (+${playPoints[0].toFixed(1)} pts)`;
+          detailedPlayDesc = `${cleanName} 24 yard pass reception from Gardner Minshew down to opponent 16 yard line (+${playPoints[0].toFixed(1)} pts)`;
         } else if (cleanName.toLowerCase().includes("samuel")) {
           baseDay = "Thu"; baseHour = 8; baseMin = 15; timeSortWeight = 815; isBigPlay = true; baseStartYard = 42; baseYards = 28;
-          detailedPlayDesc = `Deebo Samuel 28 yard pass reception from Brock Purdy down to 30 yard line (+${playPoints[0].toFixed(1)} pts)`;
+          detailedPlayDesc = `Deebo Samuel 28 yard pass reception from Brock Purdy down to opponent 30 yard line (+${playPoints[0].toFixed(1)} pts)`;
+        } else if (cleanName.toLowerCase().includes("darnold")) {
+          baseDay = "Wed"; baseHour = 8; baseMin = 15; timeSortWeight = 600; isBigPlay = true; baseStartYard = 40; baseYards = 25;
+          detailedPlayDesc = `Sam Darnold 25 yard pass completion to Justin Jefferson down to opponent 35 yard line (+${playPoints[0].toFixed(1)} pts)`;
         } else if (cleanName.toLowerCase().includes("barkley")) {
           baseHour = 1; baseMin = 45; timeSortWeight = 1345; isBigPlay = true; baseStartYard = 70; baseYards = 18;
-          detailedPlayDesc = `Saquon Barkley 18 yard rush up the middle down to 12 yard line (+${playPoints[0].toFixed(1)} pts)`;
+          detailedPlayDesc = `Saquon Barkley 18 yard rush up the middle down to opponent 12 yard line (+${playPoints[0].toFixed(1)} pts)`;
         } else if (cleanName.toLowerCase().includes("jackson")) {
           baseHour = 2; baseMin = 18; timeSortWeight = 1418; isBigPlay = true; baseStartYard = 42; baseYards = 24;
-          detailedPlayDesc = `Lamar Jackson 24 yard pass completion to Zay Flowers down to 34 yard line (+${playPoints[0].toFixed(1)} pts)`;
+          detailedPlayDesc = `Lamar Jackson 24 yard pass completion to Zay Flowers down to opponent 34 yard line (+${playPoints[0].toFixed(1)} pts)`;
         } else if (cleanName.toLowerCase().includes("lawrence")) {
           baseHour = 2; baseMin = 20; timeSortWeight = 1420; isBigPlay = true; isTD = true; baseStartYard = 74; baseYards = 26;
           detailedPlayDesc = `Trevor Lawrence 26 yard touchdown pass to Brian Thomas Jr. down to end zone (+${playPoints[0].toFixed(1)} pts)`;
         } else if (cleanName.toLowerCase().includes("smith-njigba")) {
           baseHour = 2; baseMin = 25; timeSortWeight = 1425; isBigPlay = true; baseStartYard = 50; baseYards = 36;
-          detailedPlayDesc = `🚨 BIG PLAY! Jaxon Smith-Njigba 36 yard pass reception from Geno Smith down to 14 yard line (+${playPoints[0].toFixed(1)} pts)`;
+          detailedPlayDesc = `🚨 BIG PLAY! Jaxon Smith-Njigba 36 yard pass reception from Geno Smith down to opponent 14 yard line (+${playPoints[0].toFixed(1)} pts)`;
         } else {
           baseHour = 1 + (idx % 2); baseMin = 10 + (idx * 4);
           timeSortWeight = 1300 + (baseHour * 60) + baseMin;
           baseYards = Math.min(38, Math.max(12, Math.round(scoreNum * 1.8)));
           isBigPlay = baseYards >= 20;
-          baseStartYard = Math.max(20, Math.min(80, 100 - (15 + baseYards)));
-          const endYard = Math.max(6, 100 - (baseStartYard + baseYards));
+          baseStartYard = Math.max(20, Math.min(60, 10 + Math.random() * 40)); // starts on own side
+          const absoluteEndYard = baseStartYard + baseYards;
+          const endStr = absoluteEndYard > 50 ? `opponent ${100 - absoluteEndYard}` : `own ${absoluteEndYard}`;
           if (pos === 'RB') {
-            detailedPlayDesc = `${cleanName} ${baseYards} yard rush off tackle down to opponent ${endYard} yard line (+${playPoints[0].toFixed(1)} pts)`;
+            detailedPlayDesc = `${cleanName} ${baseYards} yard rush off tackle down to ${endStr} yard line (+${playPoints[0].toFixed(1)} pts)`;
           } else if (pos === 'K') {
             detailedPlayDesc = `${cleanName} 46 yard field goal GOOD (+${playPoints[0].toFixed(1)} pts)`;
           } else if (pos === 'DST') {
             detailedPlayDesc = `${cleanName} defensive sack for loss of 7 yards (+${playPoints[0].toFixed(1)} pts)`;
           } else {
-            detailedPlayDesc = `${cleanName} ${baseYards} yard pass reception down to opponent ${endYard} yard line (+${playPoints[0].toFixed(1)} pts)`;
+            detailedPlayDesc = `${cleanName} ${baseYards} yard pass reception down to ${endStr} yard line (+${playPoints[0].toFixed(1)} pts)`;
           }
         }
 
