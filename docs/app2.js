@@ -178,10 +178,46 @@ class PFFLApp {
                     let isTD = play.text.includes('TOUCHDOWN');
                     let isBigPlay = isTD || play.statYardage >= 20;
                     
+                    let pts = 0;
+                    let txt = play.text.toLowerCase();
+                    
+                    if (txt.includes('field goal is good') || txt.includes('field goal good')) {
+                        let match = txt.match(/(\d+) yard field goal/);
+                        let dist = match ? parseInt(match[1]) : 30;
+                        if (dist >= 50) pts = 5;
+                        else if (dist >= 40) pts = 4;
+                        else pts = 3;
+                    } else if (txt.includes('extra point is good')) {
+                        pts = 1;
+                    } else if (txt.includes('kicks ') && !txt.includes('good') && !txt.includes('field goal')) {
+                        // Kickoff, skip
+                        continue;
+                    } else {
+                        // Skill player
+                        let yards = play.statYardage || 0;
+                        let isPasser = txt.includes(espnName.toLowerCase() + ' pass');
+                        let isReceiver = txt.includes('to ' + espnName.toLowerCase());
+                        
+                        if (isPasser) {
+                            pts += yards * 0.04;
+                            if (isTD) pts += 4;
+                        } else {
+                            pts += yards * 0.1;
+                            if (isTD) pts += 6;
+                            // Check if it's a reception (PPR = 1 pt)
+                            // Either they are explicitly the receiver, or it's a pass play and they are the one getting yards
+                            if (isReceiver || (txt.includes('pass ') && !isPasser)) {
+                                pts += 1;
+                            }
+                        }
+                    }
+                    
+                    if (pts <= 0) continue;
+                    
                     const newPlay = {
                       playerId: pObj.id,
                       playerName: pObj.name,
-                      pts: "",
+                      pts: `+${pts.toFixed(1)}`,
                       isPos: true,
                       isTD: isTD,
                       isBigPlay: isBigPlay,
