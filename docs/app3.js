@@ -680,21 +680,48 @@ class PFFLApp {
       return finalPlayerObj;
     });
 
-    const slots = ['QB', 'RB', 'RB', 'WR', 'WR', 'FLEX', 'TE', 'K', 'DST'];
-    const assignedLineup = [];
+    const renderSlots = ['QB', 'RB', 'RB', 'WR', 'WR', 'FLEX', 'TE', 'K', 'DST'];
+    const assignedLineup = new Array(9).fill(null);
     const usedIDs = new Set();
-
-    slots.forEach((slot, sIdx) => {
-      let match = parsedPlayers.find(p => !usedIDs.has(p.id) && (p.pos === slot || (slot === 'FLEX' && ['RB', 'WR', 'TE'].includes(p.pos))));
-      if (!match) {
-        const defaultGame = sampleOpponents[sIdx % sampleOpponents.length];
-        match = parsedPlayers.find(p => !usedIDs.has(p.id)) || {
-          id: `empty-${slot}`, name: `Empty ${slot}`, pos: slot, team: 'NFL', scoreNum: 0, scoreStr: "0.00", isPos: true, pointLogsStr: defaultGame, upcomingGameInfo: defaultGame, detailedPlayDesc: `Empty ${slot} — ${defaultGame}`, timeStamp: "Upcoming", timeSortWeight: 0, isBigPlay: false, last5Plays: []
-        };
+    
+    // First Pass: Assign Strict Positions
+    renderSlots.forEach((slot, sIdx) => {
+      if (slot !== 'FLEX') {
+        let match = parsedPlayers.find(p => !usedIDs.has(p.id) && p.pos === slot);
+        if (match) {
+          usedIDs.add(match.id);
+          assignedLineup[sIdx] = { ...match, displaySlot: slot };
+        }
       }
+    });
 
-      if (match.id && !match.id.startsWith("empty-")) usedIDs.add(match.id);
-      assignedLineup.push({ ...match, displaySlot: slot });
+    // Second Pass: Assign FLEX
+    renderSlots.forEach((slot, sIdx) => {
+      if (slot === 'FLEX') {
+        let match = parsedPlayers.find(p => !usedIDs.has(p.id) && ['RB', 'WR', 'TE'].includes(p.pos));
+        if (match) {
+          usedIDs.add(match.id);
+          assignedLineup[sIdx] = { ...match, displaySlot: slot };
+        }
+      }
+    });
+
+    // Third Pass: Fill any empty slots with remaining players (regardless of position) or empty placeholders
+    renderSlots.forEach((slot, sIdx) => {
+      if (!assignedLineup[sIdx]) {
+        const defaultGame = sampleOpponents[sIdx % sampleOpponents.length];
+        let fallback = parsedPlayers.find(p => !usedIDs.has(p.id));
+        if (fallback) {
+          usedIDs.add(fallback.id);
+          assignedLineup[sIdx] = { ...fallback, displaySlot: slot };
+        } else {
+          assignedLineup[sIdx] = {
+            id: `empty-${slot}`, name: `Empty ${slot}`, pos: slot, team: 'NFL', scoreNum: 0, scoreStr: "0.00", isPos: true, 
+            pointLogsStr: defaultGame, upcomingGameInfo: defaultGame, detailedPlayDesc: `Empty ${slot} — ${defaultGame}`, 
+            timeStamp: "Upcoming", timeSortWeight: 0, isBigPlay: false, last5Plays: [], displaySlot: slot
+          };
+        }
+      }
     });
 
     return assignedLineup;
