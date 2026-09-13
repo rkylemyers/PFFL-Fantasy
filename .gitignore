@@ -1,0 +1,17 @@
+# Binaries
+pffl-server
+*.exe
+*.exe.manifest
+*.dll
+*.so
+*.dylib
+
+# OS Junk
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Temp files
+*.tmp
