@@ -193,8 +193,16 @@ class PFFLApp {
                             if (dist >= 50) pts = 5;
                             else if (dist >= 40) pts = 4;
                             else pts = 3;
+                            
+                            // Strip away any preceding touchdown text if this is a combined play
+                            let kickerParts = play.text.split(/TOUCHDOWN\.|TOUCHDOWN,/i);
+                            play.text = kickerParts.length > 1 ? kickerParts[1].trim() : play.text;
                         } else if (txt.includes('extra point is good') && txt.includes(espnName.toLowerCase())) {
                             pts = 1;
+                            
+                            // Strip away the touchdown pass/run description so the kicker just gets their XP text
+                            let kickerParts = play.text.split(/TOUCHDOWN\.|TOUCHDOWN,/i);
+                            play.text = kickerParts.length > 1 ? kickerParts[1].trim() : play.text;
                         }
                     } else {
                         // Skill player
@@ -769,12 +777,13 @@ class PFFLApp {
       }
     });
     
-    // Deduplicate by desc just in case
+    // Deduplicate by desc + playerId to allow QB and WR to both get credit for the same play
     const uniquePlays = [];
     const seen = new Set();
     allPlays.forEach(p => {
-       if (!seen.has(p.desc)) {
-         seen.add(p.desc);
+       const key = p.desc + p.playerId;
+       if (!seen.has(key)) {
+         seen.add(key);
          uniquePlays.push(p);
        }
     });
