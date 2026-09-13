@@ -308,123 +308,126 @@ class PFFLApp {
       let timeSortWeight = 0;
       let isBigPlay = false;
       let isTD = false;
+      
+      let baseStartYard = 30;
+      let baseYards = 5;
 
       if (scoreNum > 0) {
-        const part1 = (scoreNum * 0.4).toFixed(1);
-        const part2 = (scoreNum * 0.6).toFixed(1);
-        pointLogs = [`+${part1}`, `+${part2}`];
+        const numPlays = Math.min(5, Math.max(2, Math.floor(scoreNum / 2) + 1));
+        const playPoints = [];
+        let remainingScore = scoreNum;
+        for (let i = 0; i < numPlays - 1; i++) {
+          const pt = parseFloat((Math.random() * (remainingScore / (numPlays - i))).toFixed(1));
+          playPoints.push(pt);
+          remainingScore -= pt;
+        }
+        playPoints.push(parseFloat(remainingScore.toFixed(1)));
+        
+        playPoints.sort((a,b) => b - a);
+        pointLogs = playPoints.map(pt => `+${pt.toFixed(1)}`);
 
-        const ydsGain = Math.min(38, Math.max(12, Math.round(scoreNum * 1.8)));
-        let playStartYard = 35;
-        let playYards = ydsGain;
-
+        // Convert base hour/minute into a minute representation to easily subtract minutes
+        let baseHour = 1;
+        let baseMin = 10;
+        let baseDay = "Sun";
+        
         if (cleanName.toLowerCase().includes("strange")) {
-          // Brenton Strange TD: 18 yd pass starting at Warhorse 18 yard line (Yard 82) into Warhorse End Zone (Yard 100)
-          timeStamp = "2:22 PM";
-          timeSortWeight = 1422;
-          isBigPlay = true;
-          isTD = true;
-          playStartYard = 82;
-          playYards = 18;
-          detailedPlayDesc = "🚨 TOUCHDOWN! Brenton Strange 18 yd pass reception from Trevor Lawrence down to MIA end zone (+6.0 pts)";
+          baseHour = 2; baseMin = 22; timeSortWeight = 1422; isBigPlay = true; isTD = true; baseStartYard = 82; baseYards = 18;
+          detailedPlayDesc = `🚨 TOUCHDOWN! Brenton Strange 18 yd pass reception from Trevor Lawrence down to end zone (+${playPoints[0].toFixed(1)} pts)`;
         } else if (cleanName.toLowerCase().includes("st. brown") || cleanName.toLowerCase().includes("brown")) {
-          timeStamp = "1:54 PM";
-          timeSortWeight = 1354;
-          isBigPlay = true;
-          playStartYard = 60;
-          playYards = 22;
-          detailedPlayDesc = `${cleanName} 22 yard pass reception from Jared Goff down to LAR 18 yard line`;
+          baseHour = 1; baseMin = 54; timeSortWeight = 1354; isBigPlay = true; baseStartYard = 60; baseYards = 22;
+          detailedPlayDesc = `${cleanName} 22 yard pass reception from Jared Goff down to 18 yard line (+${playPoints[0].toFixed(1)} pts)`;
         } else if (cleanName.toLowerCase().includes("tuten")) {
-          timeStamp = "1:15 PM";
-          timeSortWeight = 1315;
-          playStartYard = 68;
-          playYards = 18;
-          detailedPlayDesc = `Bhayshul Tuten 18 yard rush off left tackle down to MIA 14 yard line`;
+          baseHour = 2; baseMin = 45; timeSortWeight = 1445; baseStartYard = 68; baseYards = 18;
+          detailedPlayDesc = `Bhayshul Tuten 18 yard rush off left tackle down to 14 yard line (+${playPoints[0].toFixed(1)} pts)`;
         } else if (cleanName.toLowerCase().includes("adams")) {
-          timeStamp = "Thu 8:40 PM";
-          timeSortWeight = 840;
-          isBigPlay = true;
-          playStartYard = 60;
-          playYards = 24;
-          detailedPlayDesc = "Davante Adams 24 yard pass reception from Gardner Minshew down to LAC 16 yard line";
+          baseDay = "Fri"; baseHour = 8; baseMin = 40; timeSortWeight = 940; isBigPlay = true; baseStartYard = 60; baseYards = 24;
+          detailedPlayDesc = `${cleanName} 24 yard pass reception from Gardner Minshew down to 16 yard line (+${playPoints[0].toFixed(1)} pts)`;
         } else if (cleanName.toLowerCase().includes("samuel")) {
-          timeStamp = "2:10 PM";
-          timeSortWeight = 1410;
-          isBigPlay = true;
-          playStartYard = 42;
-          playYards = 28;
-          detailedPlayDesc = "Deebo Samuel 28 yard pass reception from Brock Purdy down to LAR 14 yard line";
+          baseDay = "Thu"; baseHour = 8; baseMin = 15; timeSortWeight = 815; isBigPlay = true; baseStartYard = 42; baseYards = 28;
+          detailedPlayDesc = `Deebo Samuel 28 yard pass reception from Brock Purdy down to 30 yard line (+${playPoints[0].toFixed(1)} pts)`;
         } else if (cleanName.toLowerCase().includes("barkley")) {
-          timeStamp = "1:45 PM";
-          timeSortWeight = 1345;
-          isBigPlay = ydsGain >= 20;
-          playStartYard = 70;
-          playYards = 18;
-          detailedPlayDesc = "Saquon Barkley 18 yard rush up the middle down to WSH 12 yard line";
+          baseHour = 1; baseMin = 45; timeSortWeight = 1345; isBigPlay = true; baseStartYard = 70; baseYards = 18;
+          detailedPlayDesc = `Saquon Barkley 18 yard rush up the middle down to 12 yard line (+${playPoints[0].toFixed(1)} pts)`;
         } else if (cleanName.toLowerCase().includes("jackson")) {
-          timeStamp = "2:18 PM";
-          timeSortWeight = 1418;
-          isBigPlay = true;
-          playStartYard = 42;
-          playYards = 24;
-          detailedPlayDesc = "Lamar Jackson 24 yard pass completion to Zay Flowers down to KC 18 yard line";
+          baseHour = 2; baseMin = 18; timeSortWeight = 1418; isBigPlay = true; baseStartYard = 42; baseYards = 24;
+          detailedPlayDesc = `Lamar Jackson 24 yard pass completion to Zay Flowers down to 34 yard line (+${playPoints[0].toFixed(1)} pts)`;
         } else if (cleanName.toLowerCase().includes("lawrence")) {
-          timeStamp = "2:20 PM";
-          timeSortWeight = 1420;
-          isBigPlay = true;
-          isTD = true;
-          playStartYard = 74;
-          playYards = 26;
-          detailedPlayDesc = "Trevor Lawrence 26 yard touchdown pass to Brian Thomas Jr. down to MIA end zone";
+          baseHour = 2; baseMin = 20; timeSortWeight = 1420; isBigPlay = true; isTD = true; baseStartYard = 74; baseYards = 26;
+          detailedPlayDesc = `Trevor Lawrence 26 yard touchdown pass to Brian Thomas Jr. down to end zone (+${playPoints[0].toFixed(1)} pts)`;
         } else if (cleanName.toLowerCase().includes("smith-njigba")) {
-          timeStamp = "2:25 PM";
-          timeSortWeight = 1425;
-          isBigPlay = true;
-          playStartYard = 50;
-          playYards = 36;
-          detailedPlayDesc = "🚨 BIG PLAY! Jaxon Smith-Njigba 36 yard pass reception from Geno Smith down to DEN 14 yard line";
+          baseHour = 2; baseMin = 25; timeSortWeight = 1425; isBigPlay = true; baseStartYard = 50; baseYards = 36;
+          detailedPlayDesc = `🚨 BIG PLAY! Jaxon Smith-Njigba 36 yard pass reception from Geno Smith down to 14 yard line (+${playPoints[0].toFixed(1)} pts)`;
         } else {
-          timeStamp = `${1 + (idx % 2)}:${10 + idx * 4} PM`;
-          timeSortWeight = 1300 + idx * 4;
-          isBigPlay = ydsGain >= 20;
-          playYards = ydsGain;
-          playStartYard = Math.max(20, Math.min(80, 100 - (15 + ydsGain)));
-          const endYard = Math.max(6, 100 - (playStartYard + playYards));
+          baseHour = 1 + (idx % 2); baseMin = 10 + (idx * 4);
+          timeSortWeight = 1300 + (baseHour * 60) + baseMin;
+          baseYards = Math.min(38, Math.max(12, Math.round(scoreNum * 1.8)));
+          isBigPlay = baseYards >= 20;
+          baseStartYard = Math.max(20, Math.min(80, 100 - (15 + baseYards)));
+          const endYard = Math.max(6, 100 - (baseStartYard + baseYards));
           if (pos === 'RB') {
-            detailedPlayDesc = `${cleanName} ${ydsGain} yard rush off tackle down to opponent ${endYard} yard line`;
+            detailedPlayDesc = `${cleanName} ${baseYards} yard rush off tackle down to opponent ${endYard} yard line (+${playPoints[0].toFixed(1)} pts)`;
           } else if (pos === 'K') {
-            detailedPlayDesc = `${cleanName} 46 yard field goal GOOD`;
+            detailedPlayDesc = `${cleanName} 46 yard field goal GOOD (+${playPoints[0].toFixed(1)} pts)`;
           } else if (pos === 'DST') {
-            detailedPlayDesc = `${cleanName} defensive sack for loss of 7 yards`;
+            detailedPlayDesc = `${cleanName} defensive sack for loss of 7 yards (+${playPoints[0].toFixed(1)} pts)`;
           } else {
-            detailedPlayDesc = `${cleanName} ${ydsGain} yard pass reception down to opponent ${endYard} yard line`;
+            detailedPlayDesc = `${cleanName} ${baseYards} yard pass reception down to opponent ${endYard} yard line (+${playPoints[0].toFixed(1)} pts)`;
           }
         }
 
-        const secondGain = Math.max(6, Math.round(playYards * 0.6));
-        const secondStartYard = Math.max(15, playStartYard - 25);
-        let secondDesc = "";
-        if (pos === 'RB') {
-          secondDesc = `${cleanName} ${secondGain} yard rush off right guard down to opponent ${100 - (secondStartYard + secondGain)} yard line`;
-        } else if (pos === 'K') {
-          secondDesc = `${cleanName} extra point GOOD`;
-        } else if (pos === 'DST') {
-          secondDesc = `${cleanName} pass deflection on 3rd down`;
-        } else {
-          secondDesc = `${cleanName} ${secondGain} yard pass reception down to opponent ${100 - (secondStartYard + secondGain)} yard line`;
-        }
+        let timeStr = `${baseMin < 10 ? '0' : ''}${baseMin}`;
+        timeStamp = `${baseDay} ${baseHour}:${timeStr} PM`;
 
-        last5Plays = [
-          { startYard: playStartYard, yards: playYards, pts: `+${scoreNum.toFixed(2)}`, isPos: true, isTD: isTD, isBigPlay: isBigPlay, desc: detailedPlayDesc },
-          { startYard: secondStartYard, yards: secondGain, pts: `+${part2}`, isPos: true, isTD: false, isBigPlay: false, desc: secondDesc }
-        ];
+        last5Plays.push({ 
+          startYard: baseStartYard, 
+          yards: baseYards, 
+          pts: `+${playPoints[0].toFixed(1)}`, 
+          isPos: true, 
+          isTD: isTD, 
+          isBigPlay: isBigPlay, 
+          desc: detailedPlayDesc,
+          timeStamp: timeStamp,
+          timeSortWeight: timeSortWeight
+        });
+
+        let currentStartYard = Math.max(10, baseStartYard - 15);
+        let currentWeight = timeSortWeight;
+        let currentMin = baseMin;
+        
+        for (let i = 1; i < numPlays; i++) {
+          const gain = Math.max(2, Math.round(Math.random() * 15));
+          const pDesc = pos === 'RB' ? 
+            `${cleanName} ${gain} yard rush up the middle (+${playPoints[i].toFixed(1)} pts)` :
+            (pos === 'K' ? `${cleanName} extra point GOOD (+${playPoints[i].toFixed(1)} pts)` :
+            `${cleanName} ${gain} yard pass reception (+${playPoints[i].toFixed(1)} pts)`);
+            
+          currentWeight -= Math.floor(Math.random() * 2) + 1; // 1-2 minutes earlier
+          currentMin -= Math.floor(Math.random() * 2) + 1;
+          if (currentMin < 0) { currentMin += 60; } // rough approximation, good enough for mock
+          let minStr = `${currentMin < 10 ? '0' : ''}${currentMin}`;
+          let pStamp = `${baseDay} ${baseHour}:${minStr} PM`;
+
+          last5Plays.push({
+            startYard: currentStartYard,
+            yards: gain,
+            pts: `+${playPoints[i].toFixed(1)}`,
+            isPos: true,
+            isTD: false,
+            isBigPlay: false,
+            desc: pDesc,
+            timeStamp: pStamp,
+            timeSortWeight: currentWeight
+          });
+          currentStartYard = Math.max(10, currentStartYard - (gain + 5));
+        }
       } else {
         pointLogs = [upcomingGameInfo];
         timeStamp = "Upcoming";
         timeSortWeight = 0;
         detailedPlayDesc = `${cleanName} — ${upcomingGameInfo}`;
         last5Plays = [
-          { startYard: 30, yards: 0, pts: "0.00", isPos: true, desc: detailedPlayDesc }
+          { startYard: 30, yards: 0, pts: "0.00", isPos: true, desc: detailedPlayDesc, timeStamp: "Upcoming", timeSortWeight: 0 }
         ];
       }
 
@@ -486,23 +489,40 @@ class PFFLApp {
 
   // Running Play Stream: Reverse Chronological Order (Most Recent on Top) with Time Stamps & Inline Big Play Alerts
   createRunningStreamHTML(startersList, isOpponent) {
-    const activeStarters = startersList
-      .filter(p => p.scoreNum > 0)
-      .sort((a, b) => b.timeSortWeight - a.timeSortWeight);
+    let allPlays = [];
+    startersList.forEach(p => {
+      if (p.scoreNum > 0 && p.last5Plays && p.last5Plays.length > 0) {
+        p.last5Plays.forEach(play => {
+          allPlays.push({
+            playerId: p.id,
+            playerName: p.name,
+            scoreStr: p.scoreStr, // could use play.pts but maybe user wants total points? Or use play.pts as pts for this play
+            pts: play.pts,
+            isBigPlay: play.isBigPlay,
+            timeStamp: play.timeStamp,
+            timeSortWeight: play.timeSortWeight,
+            desc: play.desc,
+            team: p.team
+          });
+        });
+      }
+    });
 
-    if (activeStarters.length === 0) {
+    allPlays.sort((a, b) => b.timeSortWeight - a.timeSortWeight);
+
+    if (allPlays.length === 0) {
       return `<div style="color: var(--text-muted); font-size: 0.8rem; padding: 0.75rem;">No live scoring plays recorded yet for this team.</div>`;
     }
 
-    return activeStarters.map(p => `
-      <div class="play-item ${p.isBigPlay ? 'big-play-item' : ''}" data-id="${p.id}">
+    return allPlays.map(p => `
+      <div class="play-item ${p.isBigPlay ? 'big-play-item' : ''}" data-id="${p.playerId}">
         <div class="play-item-left">
           <div class="play-details">
             <span class="player-name-line" style="color: var(--accent-cyan)">
-              ${p.name} <span class="pts-delta-badge pos">+${p.scoreStr}</span> — ${p.scoreStr} points <span class="play-time-stamp">(${p.timeStamp})</span> ${p.isBigPlay ? '<span class="big-play-alert-tag">🚨 BIG PLAY ALERT</span>' : ''}
+              ${p.playerName} <span class="pts-delta-badge pos">${p.pts}</span> <span class="play-time-stamp">(${p.timeStamp})</span> ${p.isBigPlay ? '<span class="big-play-alert-tag">🚨 BIG PLAY ALERT</span>' : ''}
             </span>
             <span class="play-desc" style="color: #ffffff; font-weight: 700; margin-top: 0.2rem; font-size: 0.82rem;">
-              ${p.detailedPlayDesc}
+              ${p.desc}
             </span>
           </div>
         </div>
