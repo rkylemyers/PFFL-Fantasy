@@ -339,7 +339,7 @@ class PFFLApp {
                   pts: `+${fpts.toFixed(1)}`,
                   isBigPlay: (play.statYardage && play.statYardage >= 20) || isTD,
                   timeStamp: "LIVE",
-                  timeSortWeight: 99999 + Date.now()/100000,
+                  timeSortWeight: Date.now(),
                   desc: `🚨 LIVE: ${play.text} (+${fpts.toFixed(1)} pts)`,
                   team: match.team,
                   startYard: comp.situation.yardLine || 25,
@@ -364,6 +364,12 @@ class PFFLApp {
                   if (this.field && this.field.renderCombinedPlays) {
                       this.field.renderCombinedPlays(combined);
                   }
+                  
+                  // Also update the live running stream logs at the bottom
+                  const myStreamFeed = document.getElementById("my-team-stream-feed");
+                  const oppStreamFeed = document.getElementById("opp-team-stream-feed");
+                  if (myStreamFeed) myStreamFeed.innerHTML = this.createRunningStreamHTML(this.team1Starters, false);
+                  if (oppStreamFeed) oppStreamFeed.innerHTML = this.createRunningStreamHTML(this.team2Starters, true);
                 }
               }
             });
