@@ -227,7 +227,7 @@ class PFFLApp {
                         
                         let yards = play.statYardage || 0;
                         let isPasser = txt.includes(espnName.toLowerCase() + ' pass');
-                        let isReceiver = txt.includes('to ' + espnName.toLowerCase());
+                        let isReceiver = txt.includes('to ' + espnName.toLowerCase()) && !txt.includes('incomplete') && !txt.includes('intercepted');
                         let isPassPlay = txt.includes('pass ');
                         let isRusher = txt.includes(espnName.toLowerCase()) && !isPassPlay;
                         
@@ -331,6 +331,7 @@ class PFFLApp {
                 let isTD = play.text.toLowerCase().includes('touchdown');
                 if (isTD) fpts += 6.0;
                 if (play.type && play.type.text === 'Pass Reception') fpts += 1.0;
+                if (fpts <= 0) return; // Skip 0 point plays (like incomplete passes) to avoid stream spam
                 
                 const playObj = {
                   playerId: match.id,
