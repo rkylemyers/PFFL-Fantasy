@@ -137,7 +137,6 @@ class PFFLApp {
       this.pollESPN();
     }, 10000);
     this.pollESPN();
-    this.loadRealHistoricalPlays();
   }
 
   async loadRealHistoricalPlays() {
@@ -396,6 +395,14 @@ class PFFLApp {
 
     const team1Starters = this.buildStrictPositionalLineup(team1Data);
     const team2Starters = this.buildStrictPositionalLineup(team2Data);
+    
+    this.team1Starters = team1Starters;
+    this.team2Starters = team2Starters;
+
+    if (!this.historicalPlaysLoaded) {
+      this.historicalPlaysLoaded = true;
+      this.loadRealHistoricalPlays();
+    }
 
     const myFeed = document.getElementById("my-team-play-feed");
     const oppFeed = document.getElementById("opp-team-play-feed");
