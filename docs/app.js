@@ -244,7 +244,7 @@ class PFFLApp {
         const pId = item.getAttribute("data-id");
         const playerObj = team1Starters.find(p => p.id === pId) || team1Starters[0];
         document.getElementById("current-play-summary").textContent = `Mapping field plays for ${playerObj.name} (${f1Meta.name})`;
-        this.field.renderPlayerLast5Plays(playerObj.last5Plays, false);
+        this.field.renderPlayerLast5Plays(playerObj.last5Plays, false, playerObj);
       });
     });
 
@@ -253,13 +253,13 @@ class PFFLApp {
         const pId = item.getAttribute("data-id");
         const playerObj = team2Starters.find(p => p.id === pId) || team2Starters[0];
         document.getElementById("current-play-summary").textContent = `Mapping field plays for ${playerObj.name} (${f2Meta.name})`;
-        this.field.renderPlayerLast5Plays(playerObj.last5Plays, true);
+        this.field.renderPlayerLast5Plays(playerObj.last5Plays, true, playerObj);
       });
     });
 
     const activeStarter = team1Starters.find(p => p.scoreNum > 0) || team1Starters[0];
     if (activeStarter) {
-      this.field.renderPlayerLast5Plays(activeStarter.last5Plays, false);
+      this.field.renderPlayerLast5Plays(activeStarter.last5Plays, false, activeStarter);
     }
   }
 
