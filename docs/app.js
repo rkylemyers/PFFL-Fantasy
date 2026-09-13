@@ -194,10 +194,8 @@ class PFFLApp {
     const f1Meta = franchises.find(f => f.id === team1Data.id) || { name: "Home Team", logo: "" };
     const f2Meta = franchises.find(f => f.id === team2Data.id) || { name: "Away Team", logo: "" };
 
-    // Update End Zone Team Names
     this.field.setTeamNames(f1Meta.name, f2Meta.name);
 
-    // Update Top Scoreboard Banner
     document.getElementById("banner-left-name").textContent = f1Meta.name;
     document.getElementById("banner-left-logo").src = f1Meta.logo || f1Meta.icon || "https://www44.myfantasyleague.com/fflnetdynamic2021/44108_league_logo.jpg";
     document.getElementById("banner-left-score").textContent = parseFloat(team1Data.score || "0.00").toFixed(2);
@@ -208,7 +206,6 @@ class PFFLApp {
     document.getElementById("banner-right-score").textContent = parseFloat(team2Data.score || "0.00").toFixed(2);
     document.getElementById("banner-right-proj").textContent = (parseFloat(team2Data.score || "0") + (parseInt(team2Data.playersYetToPlay || "0") * 10.5)).toFixed(1);
 
-    // Update Team Panel Headers
     document.getElementById("my-team-name").textContent = f1Meta.name;
     document.getElementById("my-team-logo").src = f1Meta.logo || f1Meta.icon || "https://www44.myfantasyleague.com/fflnetdynamic2021/44108_league_logo.jpg";
     document.getElementById("my-team-score").textContent = parseFloat(team1Data.score || "0.00").toFixed(2);
@@ -219,7 +216,6 @@ class PFFLApp {
     document.getElementById("opp-team-score").textContent = parseFloat(team2Data.score || "0.00").toFixed(2);
     document.getElementById("opp-team-proj").textContent = (parseFloat(team2Data.score || "0") + (parseInt(team2Data.playersYetToPlay || "0") * 10.5)).toFixed(1);
 
-    // Build Positional Lineups
     const team1Starters = this.buildStrictPositionalLineup(team1Data);
     const team2Starters = this.buildStrictPositionalLineup(team2Data);
 
@@ -234,7 +230,6 @@ class PFFLApp {
       if (oppFeed) oppFeed.innerHTML = this.createRunningStreamHTML(team2Starters, true);
     }
 
-    // Attach Hover Listeners
     document.querySelectorAll("#my-team-play-feed .play-item").forEach((item) => {
       item.addEventListener("mouseenter", () => {
         const pId = item.getAttribute("data-id");
@@ -262,7 +257,6 @@ class PFFLApp {
   buildStrictPositionalLineup(franchiseData) {
     const rawStarters = (franchiseData.players && franchiseData.players.player) || [];
     
-    // Sample upcoming NFL schedule kickoff times & opponents
     const sampleOpponents = [
       "vs DAL (Sun 1:00 PM)", "@ PHI (Sun 4:25 PM)", "vs DET (Sun 8:20 PM)",
       "vs WSH (Sun 1:00 PM)", "@ NYG (Sun 1:00 PM)", "@ SF (Mon 8:15 PM)",
@@ -287,21 +281,38 @@ class PFFLApp {
 
       let pointLogs = [];
       let last5Plays = [];
+      let detailedPlayDesc = "";
 
       if (scoreNum > 0) {
         const part1 = (scoreNum * 0.4).toFixed(1);
         const part2 = (scoreNum * 0.6).toFixed(1);
         pointLogs = [`+${part1}`, `+${part2}`];
 
+        // Format realistic play-by-play description string
+        const ydsGain = Math.round(scoreNum * 8.2);
+        const downYard = Math.max(4, 50 - ydsGain);
+
+        if (pos === 'WR' || pos === 'TE') {
+          detailedPlayDesc = `${cleanName} completed ${ydsGain} yard pass reception down to opponent ${downYard} yard line`;
+        } else if (pos === 'RB') {
+          detailedPlayDesc = `${cleanName} ${ydsGain} yard rush to the left down to opponent ${downYard} yard line`;
+        } else if (pos === 'QB') {
+          detailedPlayDesc = `${cleanName} pass complete for ${ydsGain} yards downfield`;
+        } else if (pos === 'K') {
+          detailedPlayDesc = `${cleanName} 48 yard field goal GOOD`;
+        } else {
+          detailedPlayDesc = `${cleanName} defensive stop for loss of 4 yards`;
+        }
+
         last5Plays = [
-          { startYard: 35, yards: Math.round(scoreNum * 3), pts: `+${scoreNum.toFixed(2)}`, isPos: true, desc: `${cleanName} play execution` },
+          { startYard: 35, yards: Math.round(scoreNum * 3), pts: `+${scoreNum.toFixed(2)}`, isPos: true, desc: detailedPlayDesc },
           { startYard: 20, yards: 14, pts: `+${part2}`, isPos: true, desc: `${cleanName} 14 yd gain` }
         ];
       } else {
-        // Replaced "Yet to play" with opponent & kickoff time!
         pointLogs = [upcomingGameInfo];
+        detailedPlayDesc = `${cleanName} — ${upcomingGameInfo}`;
         last5Plays = [
-          { startYard: 30, yards: 0, pts: "0.00", isPos: true, desc: `${cleanName} — ${upcomingGameInfo}` }
+          { startYard: 30, yards: 0, pts: "0.00", isPos: true, desc: detailedPlayDesc }
         ];
       }
 
@@ -315,6 +326,7 @@ class PFFLApp {
         isPos: isPos,
         pointLogsStr: pointLogs.join(", "),
         last5Plays: last5Plays,
+        detailedPlayDesc: detailedPlayDesc,
         upcomingGameInfo: upcomingGameInfo,
         gameSecondsRemaining: parseInt(pObj.gameSecondsRemaining || "3600")
       };
@@ -335,7 +347,7 @@ class PFFLApp {
       if (!match) {
         const defaultGame = sampleOpponents[sIdx % sampleOpponents.length];
         match = parsedPlayers.find(p => !usedIDs.has(p.id)) || {
-          id: `empty-${slot}`, name: `Empty ${slot}`, pos: slot, team: 'NFL', scoreNum: 0, scoreStr: "0.00", isPos: true, pointLogsStr: defaultGame, upcomingGameInfo: defaultGame, last5Plays: []
+          id: `empty-${slot}`, name: `Empty ${slot}`, pos: slot, team: 'NFL', scoreNum: 0, scoreStr: "0.00", isPos: true, pointLogsStr: defaultGame, upcomingGameInfo: defaultGame, detailedPlayDesc: `Empty ${slot} — ${defaultGame}`, last5Plays: []
         };
       }
 
@@ -363,6 +375,7 @@ class PFFLApp {
     `;
   }
 
+  // Realistic Play-by-Play Stream Formatting
   createRunningStreamHTML(startersList, isOpponent) {
     const activeStarters = startersList.filter(p => p.scoreNum > 0);
     if (activeStarters.length === 0) {
@@ -376,8 +389,8 @@ class PFFLApp {
             <span class="player-name-line" style="color: var(--accent-cyan)">
               ${p.name} <span class="pts-delta-badge pos">+${p.scoreStr}</span> — ${p.scoreStr} points
             </span>
-            <span class="play-desc" style="color: #fff; font-weight: 600; margin-top: 0.2rem;">
-              ${p.name} game scoring drive execution (+${p.scoreStr} pts)
+            <span class="play-desc" style="color: #fff; font-weight: 600; margin-top: 0.2rem; font-size: 0.8rem;">
+              ${p.detailedPlayDesc}
             </span>
           </div>
         </div>
