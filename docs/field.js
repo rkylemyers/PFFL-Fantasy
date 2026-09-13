@@ -51,12 +51,12 @@ class FootballField {
     this.svg.appendChild(leftEndzone);
     this.svg.appendChild(rightEndzone);
 
-    // End Zone Text Labels (Dynamic Team Names)
+    // End Zone Text Labels (Dynamic Team Names - Extra Large & Bold)
     const ezText1 = this.createSVGText(this.leftTeamName.substring(0, 12), 5 * this.yardWidth, this.height / 2, {
-      fill: '#ffffff', 'font-size': '28px', 'font-weight': '900', 'text-anchor': 'middle', 'font-family': 'Orbitron', transform: `rotate(-90 50 ${this.height/2})`
+      fill: '#ffffff', 'font-size': '44px', 'font-weight': '900', 'text-anchor': 'middle', 'font-family': 'Orbitron', transform: `rotate(-90 50 ${this.height/2})`
     });
     const ezText2 = this.createSVGText(this.rightTeamName.substring(0, 12), 115 * this.yardWidth, this.height / 2, {
-      fill: '#ffffff', 'font-size': '28px', 'font-weight': '900', 'text-anchor': 'middle', 'font-family': 'Orbitron', transform: `rotate(90 1150 ${this.height/2})`
+      fill: '#ffffff', 'font-size': '44px', 'font-weight': '900', 'text-anchor': 'middle', 'font-family': 'Orbitron', transform: `rotate(90 1150 ${this.height/2})`
     });
     this.svg.appendChild(ezText1);
     this.svg.appendChild(ezText2);
@@ -68,12 +68,12 @@ class FootballField {
     });
     this.svg.appendChild(boundary);
 
-    // 5. 10-Yard Major Line Markers & Numbers
+    // 5. 10-Yard Major Line Markers & Numbers (Extra Large High-Visibility Numbers)
     for (let y = 10; y <= 110; y += 10) {
       const lineX = y * this.yardWidth;
       const line = this.createSVGElement('line', {
         x1: lineX, y1: 0, x2: lineX, y2: this.height,
-        stroke: 'rgba(255, 255, 255, 0.7)', 'stroke-width': '2'
+        stroke: 'rgba(255, 255, 255, 0.75)', 'stroke-width': '2'
       });
       this.svg.appendChild(line);
 
@@ -82,11 +82,11 @@ class FootballField {
         let fieldNum = y - 10;
         if (fieldNum > 50) fieldNum = 100 - fieldNum;
 
-        const numBottom = this.createSVGText(fieldNum.toString(), lineX, this.height - 25, {
-          fill: 'rgba(255, 255, 255, 0.6)', 'font-size': '22px', 'font-weight': '800', 'text-anchor': 'middle', 'font-family': 'Orbitron'
+        const numBottom = this.createSVGText(fieldNum.toString(), lineX, this.height - 22, {
+          fill: 'rgba(255, 255, 255, 0.95)', 'font-size': '30px', 'font-weight': '900', 'text-anchor': 'middle', 'font-family': 'Orbitron'
         });
-        const numTop = this.createSVGText(fieldNum.toString(), lineX, 40, {
-          fill: 'rgba(255, 255, 255, 0.6)', 'font-size': '22px', 'font-weight': '800', 'text-anchor': 'middle', 'font-family': 'Orbitron', transform: `rotate(180 ${lineX} 40)`
+        const numTop = this.createSVGText(fieldNum.toString(), lineX, 42, {
+          fill: 'rgba(255, 255, 255, 0.95)', 'font-size': '30px', 'font-weight': '900', 'text-anchor': 'middle', 'font-family': 'Orbitron', transform: `rotate(180 ${lineX} 42)`
         });
         this.svg.appendChild(numBottom);
         this.svg.appendChild(numTop);
@@ -253,27 +253,27 @@ class FootballField {
       });
       playGroup.appendChild(spotCircle);
 
-      // 5. Dark Contrast Background Pill & High-Contrast Label Text
+      // 5. Dark High-Contrast Background Pill & Extra Large Label Text
       const labelText = index === 0 ? `🔥 RECENT PLAY: ${play.pts} PTS` : `PLAY -${index}: ${play.pts} PTS`;
-      const fontSize = Math.max(11, 14 * shrinkFactor);
+      const fontSize = index === 0 ? 20 : Math.max(15, Math.round(18 * shrinkFactor));
       const centerX = (startX + endX) / 2;
-      const textY = playY - (rectHeight / 2) - 8;
+      const textY = playY - (rectHeight / 2) - 10;
 
-      const approxTextWidth = labelText.length * (fontSize * 0.62) + 14;
+      const approxTextWidth = labelText.length * (fontSize * 0.64) + 18;
       const pillBg = this.createSVGElement('rect', {
         x: centerX - (approxTextWidth / 2),
-        y: textY - fontSize,
+        y: textY - fontSize + 2,
         width: approxTextWidth,
-        height: fontSize + 6,
-        fill: 'rgba(10, 15, 25, 0.88)',
+        height: fontSize + 8,
+        fill: 'rgba(5, 10, 20, 0.95)',
         stroke: strokeColor,
-        'stroke-width': '1',
-        rx: '4',
+        'stroke-width': '2',
+        rx: '6',
         class: 'label-pill-bg'
       });
       playGroup.appendChild(pillBg);
 
-      const playText = this.createSVGText(labelText, centerX, textY - 2, {
+      const playText = this.createSVGText(labelText, centerX, textY + 2, {
         fill: isPos ? '#00e676' : '#ff5252',
         'font-size': `${fontSize}px`,
         'font-weight': '900',

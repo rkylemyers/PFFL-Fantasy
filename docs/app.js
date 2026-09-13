@@ -308,52 +308,80 @@ class PFFLApp {
           timeStamp = "2:22 PM";
           timeSortWeight = 1422;
           isBigPlay = true;
-          detailedPlayDesc = "🚨 TOUCHDOWN! Brenton Strange 18 yd pass reception from Trevor Lawrence (+6.0 pts)";
+          detailedPlayDesc = "🚨 TOUCHDOWN! Brenton Strange 18 yd pass reception from Trevor Lawrence down to MIA end zone (+6.0 pts)";
         } else if (cleanName.toLowerCase().includes("st. brown") || cleanName.toLowerCase().includes("brown")) {
           timeStamp = "1:54 PM";
           timeSortWeight = 1354;
           isBigPlay = ydsGain >= 20;
-          detailedPlayDesc = `${cleanName} completed ${ydsGain} yard pass reception down to opponent 18 yard line`;
+          detailedPlayDesc = `${cleanName} 22 yard pass reception from Jared Goff down to LAR 18 yard line`;
         } else if (cleanName.toLowerCase().includes("tuten")) {
           timeStamp = "1:15 PM";
           timeSortWeight = 1315;
-          detailedPlayDesc = `${cleanName} 8 yard rush to the left down to opponent 22 yard line`;
+          detailedPlayDesc = `Bhayshul Tuten 18 yard rush off left tackle down to MIA 14 yard line`;
         } else if (cleanName.toLowerCase().includes("adams")) {
-          // Davante Adams played Thursday / Friday
+          // Davante Adams played Thursday / Friday vs Chargers (LAC)
           timeStamp = "Thu 8:40 PM";
           timeSortWeight = 840;
           isBigPlay = true;
-          detailedPlayDesc = "Davante Adams completed 24 yard pass reception from Matthew Stafford down to SF 16 yard line";
+          detailedPlayDesc = "Davante Adams 24 yard pass reception from Gardner Minshew down to LAC 16 yard line";
         } else if (cleanName.toLowerCase().includes("samuel")) {
+          // Deebo Samuel played the RAMS (LAR)
           timeStamp = "2:10 PM";
           timeSortWeight = 1410;
           isBigPlay = true;
-          detailedPlayDesc = "Deebo Samuel 28 yard pass reception from Brock Purdy down to DEN 14 yard line";
+          detailedPlayDesc = "Deebo Samuel 28 yard pass reception from Brock Purdy down to LAR 14 yard line";
+        } else if (cleanName.toLowerCase().includes("barkley")) {
+          timeStamp = "1:45 PM";
+          timeSortWeight = 1345;
+          isBigPlay = ydsGain >= 20;
+          detailedPlayDesc = "Saquon Barkley 18 yard rush up the middle down to WSH 12 yard line";
         } else if (cleanName.toLowerCase().includes("jackson")) {
           timeStamp = "2:18 PM";
           timeSortWeight = 1418;
           isBigPlay = true;
-          detailedPlayDesc = "Lamar Jackson 24 yard pass completion to Zay Flowers";
+          detailedPlayDesc = "Lamar Jackson 24 yard pass completion to Zay Flowers down to KC 18 yard line";
         } else if (cleanName.toLowerCase().includes("lawrence")) {
           timeStamp = "2:20 PM";
           timeSortWeight = 1420;
           isBigPlay = true;
-          detailedPlayDesc = "Trevor Lawrence 26 yard touchdown pass to Brian Thomas Jr.";
+          detailedPlayDesc = "Trevor Lawrence 26 yard touchdown pass to Brian Thomas Jr. down to MIA end zone";
         } else if (cleanName.toLowerCase().includes("smith-njigba")) {
           timeStamp = "2:25 PM";
           timeSortWeight = 1425;
           isBigPlay = true;
-          detailedPlayDesc = "🚨 BIG PLAY! Jaxon Smith-Njigba 36 yard pass reception from Sam Darnold";
+          detailedPlayDesc = "🚨 BIG PLAY! Jaxon Smith-Njigba 36 yard pass reception from Geno Smith down to DEN 14 yard line";
         } else {
           timeStamp = `${1 + (idx % 2)}:${10 + idx * 4} PM`;
           timeSortWeight = 1300 + idx * 4;
           isBigPlay = ydsGain >= 20;
-          detailedPlayDesc = `${cleanName} ${pos === 'RB' ? 'rush' : 'pass completion'} for ${ydsGain} yards`;
+          const endYard = Math.max(6, 100 - (35 + ydsGain));
+          if (pos === 'RB') {
+            detailedPlayDesc = `${cleanName} ${ydsGain} yard rush off tackle down to opponent ${endYard} yard line`;
+          } else if (pos === 'K') {
+            detailedPlayDesc = `${cleanName} 46 yard field goal GOOD`;
+          } else if (pos === 'DST') {
+            detailedPlayDesc = `${cleanName} defensive sack for loss of 7 yards`;
+          } else {
+            detailedPlayDesc = `${cleanName} ${ydsGain} yard pass reception down to opponent ${endYard} yard line`;
+          }
+        }
+
+        const secondGain = Math.max(6, Math.round(ydsGain * 0.6));
+        const secondYardLine = Math.max(8, 100 - (20 + secondGain));
+        let secondDesc = "";
+        if (pos === 'RB') {
+          secondDesc = `${cleanName} ${secondGain} yard rush off right guard down to opponent ${secondYardLine} yard line`;
+        } else if (pos === 'K') {
+          secondDesc = `${cleanName} extra point GOOD`;
+        } else if (pos === 'DST') {
+          secondDesc = `${cleanName} pass deflection on 3rd down`;
+        } else {
+          secondDesc = `${cleanName} ${secondGain} yard pass reception down to opponent ${secondYardLine} yard line`;
         }
 
         last5Plays = [
           { startYard: 35, yards: ydsGain, pts: `+${scoreNum.toFixed(2)}`, isPos: true, desc: detailedPlayDesc },
-          { startYard: 20, yards: 12, pts: `+${part2}`, isPos: true, desc: `${cleanName} 12 yd gain` }
+          { startYard: 20, yards: secondGain, pts: `+${part2}`, isPos: true, desc: secondDesc }
         ];
       } else {
         pointLogs = [upcomingGameInfo];
@@ -384,18 +412,12 @@ class PFFLApp {
       };
     });
 
-    const slotOrder = ['QB', 'RB', 'RB', 'WR', 'WR', 'FLEX', 'TE', 'K', 'DST'];
+    const slots = ['QB', 'RB', 'RB', 'WR', 'WR', 'FLEX', 'TE', 'K', 'DST'];
     const assignedLineup = [];
     const usedIDs = new Set();
 
-    slotOrder.forEach((slot, sIdx) => {
-      let match = null;
-      if (slot === 'FLEX') {
-        match = parsedPlayers.find(p => !usedIDs.has(p.id) && ['RB', 'WR', 'TE'].includes(p.pos));
-      } else {
-        match = parsedPlayers.find(p => !usedIDs.has(p.id) && p.pos === slot);
-      }
-
+    slots.forEach((slot, sIdx) => {
+      let match = parsedPlayers.find(p => !usedIDs.has(p.id) && (p.pos === slot || (slot === 'FLEX' && ['RB', 'WR', 'TE'].includes(p.pos))));
       if (!match) {
         const defaultGame = sampleOpponents[sIdx % sampleOpponents.length];
         match = parsedPlayers.find(p => !usedIDs.has(p.id)) || {
@@ -427,9 +449,8 @@ class PFFLApp {
     `;
   }
 
-  // Running Play Stream: Reverse Chronological Order (Most Recent on Top) with Time Stamps & Big Play Alerts
+  // Running Play Stream: Reverse Chronological Order (Most Recent on Top) with Time Stamps & Inline Big Play Alerts
   createRunningStreamHTML(startersList, isOpponent) {
-    // Filter active starters and sort in REVERSE CHRONOLOGICAL ORDER (most recent timeSortWeight first!)
     const activeStarters = startersList
       .filter(p => p.scoreNum > 0)
       .sort((a, b) => b.timeSortWeight - a.timeSortWeight);
@@ -442,9 +463,8 @@ class PFFLApp {
       <div class="play-item ${p.isBigPlay ? 'big-play-item' : ''}" data-id="${p.id}">
         <div class="play-item-left">
           <div class="play-details">
-            ${p.isBigPlay ? `<span class="big-play-alert-tag">🚨 BIG PLAY ALERT</span>` : ''}
             <span class="player-name-line" style="color: var(--accent-cyan)">
-              ${p.name} <span class="pts-delta-badge pos">+${p.scoreStr}</span> — ${p.scoreStr} points <span class="play-time-stamp">(${p.timeStamp})</span>
+              ${p.name} <span class="pts-delta-badge pos">+${p.scoreStr}</span> — ${p.scoreStr} points <span class="play-time-stamp">(${p.timeStamp})</span> ${p.isBigPlay ? '<span class="big-play-alert-tag">🚨 BIG PLAY ALERT</span>' : ''}
             </span>
             <span class="play-desc" style="color: #ffffff; font-weight: 700; margin-top: 0.2rem; font-size: 0.82rem;">
               ${p.detailedPlayDesc}
