@@ -188,8 +188,10 @@ class PFFLApp {
                 newPlaysFound = true;
 
                 if (this.field) {
-                  document.getElementById("current-play-summary").textContent = `LIVE MAPPING: ${match.name} on the field`;
-                  this.field.renderPlayerLast5Plays(match.last5Plays, false, match);
+                  const team1PlaysLive = this.getTeamAllPlays(this.team1Starters);
+                  const top5PlaysLive = team1PlaysLive.slice(0, 5);
+                  document.getElementById("current-play-summary").textContent = `LIVE MAPPING: Top 5 Recent Plays`;
+                  this.field.renderPlayerLast5Plays(top5PlaysLive, false, null);
                 }
               }
             });
@@ -348,12 +350,11 @@ class PFFLApp {
       });
     });
 
-    const mostRecentMyPlayer = [...team1Starters]
-      .filter(p => p.scoreNum > 0 && p.last5Plays && p.last5Plays.length > 0)
-      .sort((a, b) => b.timeSortWeight - a.timeSortWeight)[0] || team1Starters[0];
-    if (mostRecentMyPlayer) {
-      document.getElementById("current-play-summary").textContent = `Mapping field plays for ${mostRecentMyPlayer.name} (${f1Meta.name})`;
-      this.field.renderPlayerLast5Plays(mostRecentMyPlayer.last5Plays, false, mostRecentMyPlayer);
+    const team1Plays = this.getTeamAllPlays(team1Starters);
+    const top5Plays = team1Plays.slice(0, 5);
+    if (this.field && top5Plays.length > 0) {
+      document.getElementById("current-play-summary").textContent = `Mapping top 5 recent plays for ${f1Meta.name}`;
+      this.field.renderPlayerLast5Plays(top5Plays, false, null);
     }
   }
 
