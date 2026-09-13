@@ -168,9 +168,11 @@ class PFFLApp {
                 
                 // Check if any of our players are in the text
                 for (const [espnName, pObj] of playerMap.entries()) {
-                  // Some edge cases for ESPN text: they might not use a space for some names, or might just use last name for DEF.
-                  // But checking exactly `A.St. Brown` works perfectly for skill players.
-                  if (play.text.includes(espnName)) {
+                  // Strip administrative referee notes that falsely credit players with involvement
+                  let cleanedPlayText = play.text.replace(new RegExp(espnName.replace(".", "\\.") + " reported (in )?as eligible[\\.,]?", "gi"), "").trim();
+                  
+                  // Check if the player is actually involved in the meat of the play
+                  if (cleanedPlayText.includes(espnName)) {
                     // It's a match! Format the play
                     let pTime = new Date(play.wallclock);
                     let pStamp = pTime.toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'}) + (play.clock ? ` (Q${play.period.number} ${play.clock.displayValue})` : '');
@@ -213,18 +215,19 @@ class PFFLApp {
                         let yards = play.statYardage || 0;
                         let isPasser = txt.includes(espnName.toLowerCase() + ' pass');
                         let isReceiver = txt.includes('to ' + espnName.toLowerCase());
-                        let isRusher = txt.includes(espnName.toLowerCase()) && !isPasser && !isReceiver && !txt.includes('pass to');
+                        let isPassPlay = txt.includes('pass ');
+                        let isRusher = txt.includes(espnName.toLowerCase()) && !isPassPlay;
                         
                         if (isPasser) {
                             pts += yards * 0.04;
                             if (isTD) pts += 4;
-                        } else if (isReceiver || isRusher || txt.includes('pass ')) {
+                        } else if (isReceiver) {
                             pts += yards * 0.1;
                             if (isTD) pts += 6;
-                            // Check if it's a reception (PPR = 1 pt)
-                            if (isReceiver || (txt.includes('pass ') && !isPasser && !isRusher)) {
-                                pts += 1;
-                            }
+                            pts += 1; // PPR
+                        } else if (isRusher) {
+                            pts += yards * 0.1;
+                            if (isTD) pts += 6;
                         }
                     }
                     
