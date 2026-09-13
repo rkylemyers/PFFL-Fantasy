@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PFFL Fantasy Command Center | Psycho Fantasy Football League</title>
+  <link rel="icon" href="https://www44.myfantasyleague.com/fflnetdynamic2021/44108_league_logo.jpg" type="image/jpeg">
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=20260913_1">
+</head>
+<body class="dark-theme">
+  <!-- Top Global Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-brand">
+      <div class="logo-badge">PFFL</div>
+      <div class="brand-titles">
+        <h1 class="league-name">PSYCHO FANTASY FOOTBALL LEAGUE</h1>
+        <span class="franchise-tag">Franchise: <strong id="active-franchise-name">Mentalcow (0001)</strong></span>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs" id="main-nav-tabs">
+      <button class="nav-btn active" data-tab="tab-live">
+        <span class="nav-icon">🏈</span> Live Matchup & Field
+        <span class="pulse-indicator"></span>
+      </button>
+      <button class="nav-btn" data-tab="tab-roster">
+        <span class="nav-icon">📋</span> Roster & Lineup
+      </button>
+      <button class="nav-btn" data-tab="tab-transactions">
+        <span class="nav-icon">💰</span> Add/Drop & Dues
+      </button>
+      <button class="nav-btn" data-tab="tab-notifications">
+        <span class="nav-icon">🔔</span> Alerts & Settings
+      </button>
+    </nav>
+
+    <!-- Header Actions -->
+    <div class="nav-right">
+      <span class="live-status-pill" id="live-status-pill">
+        <span class="dot"></span> LIVE WEEK 1
+      </span>
+      <button id="btn-sync-data" class="btn-icon" title="Refresh Live Data">🔄</button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <div class="app-container">
+
+    <!-- PAGE 1: LIVE SCORING & MATCHUP FIELD -->
+    <section id="tab-live" class="tab-page active">
+      <!-- Top Matchup Selector Header -->
+      <div class="matchup-selector-bar">
+        <label for="matchup-dropdown" class="section-label">Select League Matchup:</label>
+        <select id="matchup-dropdown" class="select-styled">
+          <!-- Dynamically populated -->
+        </select>
+        <div class="matchup-score-banner" id="matchup-score-banner">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+
+      <!-- Top Google-Style Live Game Card & Football Field -->
+      <div class="live-field-card">
+        <div class="field-header">
+          <div class="game-meta">
+            <span class="live-tag">LIVE BROADCAST</span>
+            <span id="current-play-summary">Select or hover a play below to simulate execution</span>
+          </div>
+          <div class="field-controls">
+            <button class="btn-xs" id="btn-field-reset">Reset View</button>
+          </div>
+        </div>
+
+        <!-- SVG Interactive Field Canvas -->
+        <div class="football-field-wrapper">
+          <svg id="football-field-svg" viewBox="0 0 1200 533" preserveAspectRatio="xMidYMid meet">
+            <!-- Rendered via field.js -->
+          </svg>
+        </div>
+      </div>
+
+      <!-- Live Fantasy Head-to-Head Split Panel -->
+      <div class="head-to-head-grid">
+        <!-- My Team Panel -->
+        <div class="team-panel my-team-panel">
+          <div class="team-header">
+            <img id="my-team-logo" src="https://www44.myfantasyleague.com/fflnetdynamic2019/44108_franchise_logo0001.jpg" alt="My Team" class="franchise-logo">
+            <div class="team-info">
+              <h2 id="my-team-name">Mentalcow</h2>
+              <div class="score-display">
+                <span class="score-num" id="my-team-score">0.00</span>
+                <span class="proj-num">Proj: <span id="my-team-proj">0.0</span></span>
+              </div>
+            </div>
+          </div>
+          <!-- Player Play-by-Play & Point Deltas Feed -->
+          <div class="play-by-play-feed" id="my-team-play-feed">
+            <!-- Dynamic player play list -->
+          </div>
+        </div>
+
+        <!-- Opponent Team Panel -->
+        <div class="team-panel opp-team-panel">
+          <div class="team-header">
+            <img id="opp-team-logo" src="https://www44.myfantasyleague.com/fflnet2025/newhelmets/nh-0134.png" alt="Opponent Team" class="franchise-logo">
+            <div class="team-info">
+              <h2 id="opp-team-name">Blitzkrieg</h2>
+              <div class="score-display">
+                <span class="score-num" id="opp-team-score">0.00</span>
+                <span class="proj-num">Proj: <span id="opp-team-proj">0.0</span></span>
+              </div>
+            </div>
+          </div>
+          <!-- Opponent Play-by-Play Feed -->
+          <div class="play-by-play-feed" id="opp-team-play-feed">
+            <!-- Dynamic opponent play list -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 2: MY ROSTER & LINEUP SUBMITTER -->
+    <section id="tab-roster" class="tab-page">
+      <div class="page-action-header">
+        <div>
+          <h2 class="page-title">Roster & Lineup Manager</h2>
+          <p class="page-subtitle">Drag or click to move players between Active Lineup, Bench, and Injured Reserve (IR).</p>
+        </div>
+        <div class="roster-actions">
+          <button id="btn-auto-optimize" class="btn-secondary">⚡ Auto-Optimize Lineup</button>
+          <button id="btn-submit-lineup" class="btn-primary">🚀 Submit Lineup to MFL</button>
+        </div>
+      </div>
+
+      <!-- Active Lineup Grid -->
+      <div class="roster-section">
+        <h3 class="section-title">Starting Lineup (9 Starters)</h3>
+        <div class="lineup-table-container">
+          <table class="roster-table" id="starters-table">
+            <thead>
+              <tr>
+                <th>Pos</th>
+                <th>Player</th>
+                <th>Matchup & Opp</th>
+                <th>Proj Pts</th>
+                <th>Difficulty (1-10)</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="starters-list">
+              <!-- Starters list dynamically rendered -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Bench Grid -->
+      <div class="roster-section">
+        <h3 class="section-title">Bench Players</h3>
+        <div class="lineup-table-container">
+          <table class="roster-table" id="bench-table">
+            <thead>
+              <tr>
+                <th>Pos</th>
+                <th>Player</th>
+                <th>Matchup & Opp</th>
+                <th>Proj Pts</th>
+                <th>Difficulty (1-10)</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="bench-list">
+              <!-- Bench list dynamically rendered -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Injured Reserve (IR) -->
+      <div class="roster-section">
+        <h3 class="section-title">Injured Reserve (IR)</h3>
+        <div class="lineup-table-container">
+          <table class="roster-table" id="ir-table">
+            <thead>
+              <tr>
+                <th>Pos</th>
+                <th>Player</th>
+                <th>Matchup & Opp</th>
+                <th>Proj Pts</th>
+                <th>Difficulty (1-10)</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="ir-list">
+              <!-- IR list dynamically rendered -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Bottom Section: Player Trends & Wire Replacements -->
+      <div class="roster-bottom-analysis">
+        <!-- Left: Performance Trend Analyzer -->
+        <div class="analysis-card trend-card">
+          <div class="card-header">
+            <h3>📈 Player Performance Trends</h3>
+            <span class="card-tag">1, 3, & 5 Game Stretch</span>
+          </div>
+          <div class="trend-list" id="player-trends-container">
+            <!-- Dynamically rendered -->
+          </div>
+        </div>
+
+        <!-- Right: FantasyPros Smart Replacement Wire Suggestions -->
+        <div class="analysis-card replacement-card">
+          <div class="card-header">
+            <h3>⚡ Free Agent / Waiver Wire Replacements</h3>
+            <span class="card-tag fp-tag">Powered by Daily FantasyPros SOS & ROS</span>
+          </div>
+          <div class="replacement-list" id="wire-suggestions-container">
+            <!-- Dynamically rendered -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 3: ADD/DROP/WAIVER CLAIM & DUES TRACKER -->
+    <section id="tab-transactions" class="tab-page">
+      <!-- Top Summary Dues Cards -->
+      <div class="dues-summary-grid">
+        <div class="dues-card pot-card">
+          <span class="dues-label">Total League Pot</span>
+          <h2 class="dues-amount" id="dues-total-pot">$300.00</h2>
+          <span class="dues-sub">$25 Buy-in × 12 Teams + Waiver Fees</span>
+        </div>
+        <div class="dues-card my-dues-card">
+          <span class="dues-label">My Dues Owed (Mentalcow)</span>
+          <h2 class="dues-amount" id="my-dues-owed">$25.00</h2>
+          <span class="dues-sub" id="my-pickups-summary">2 Free Pickups used, 0 Extra ($0)</span>
+        </div>
+        <div class="dues-card pickups-card">
+          <span class="dues-label">Total League Transactions</span>
+          <h2 class="dues-amount" id="total-league-transactions">0</h2>
+          <span class="dues-sub">Structure: 2 Free, then $5/pickup</span>
+        </div>
+      </div>
+
+      <!-- Transaction Log & Team Breakdown -->
+      <div class="dues-content-split">
+        <!-- Left: Add/Drop Waiver Action Center -->
+        <div class="action-card">
+          <div class="card-header">
+            <h3>➕ Submit Supplemental Waiver Claim / Free Agent Add</h3>
+          </div>
+          <form id="waiver-claim-form" class="waiver-form">
+            <div class="form-group">
+              <label for="add-player-select">Player to Add (Free Agent):</label>
+              <select id="add-player-select" class="select-styled">
+                <option value="">-- Select Available Player --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="drop-player-select">Player to Drop:</label>
+              <select id="drop-player-select" class="select-styled">
+                <option value="">-- None (If Open Spot) --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="bid-amount">Waiver Bid Amount ($):</label>
+              <input type="number" id="bid-amount" min="0" value="0" class="input-styled">
+            </div>
+            <button type="submit" class="btn-primary full-width">Submit Claim / Add Request</button>
+          </form>
+        </div>
+
+        <!-- Right: Team Dues Ledger -->
+        <div class="ledger-card">
+          <div class="card-header">
+            <h3>📊 Franchise Dues & Transaction Balance Ledger</h3>
+          </div>
+          <div class="table-container">
+            <table class="dues-ledger-table">
+              <thead>
+                <tr>
+                  <th>Franchise</th>
+                  <th>Buy-in</th>
+                  <th>Total Pickups</th>
+                  <th>Paid Pickups</th>
+                  <th>Waiver Dues</th>
+                  <th>Total Owed</th>
+                </tr>
+              </thead>
+              <tbody id="dues-ledger-body">
+                <!-- Ledger items dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- League-Wide Transaction History Log -->
+      <div class="transaction-history-card">
+        <div class="card-header">
+          <h3>📜 League-Wide Transaction Stream</h3>
+          <input type="text" id="transaction-search" placeholder="Filter team or player..." class="input-sm">
+        </div>
+        <div class="transaction-feed" id="league-transaction-feed">
+          <!-- Dynamic feed items -->
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 4: NOTIFICATIONS & SETTINGS -->
+    <section id="tab-notifications" class="tab-page">
+      <div class="page-action-header">
+        <div>
+          <h2 class="page-title">Device Notifications & MFL Sync Settings</h2>
+          <p class="page-subtitle">Configure real-time push alerts for macOS, Android, and web browsers.</p>
+        </div>
+      </div>
+
+      <div class="settings-grid">
+        <!-- Device Web Push Card -->
+        <div class="settings-card">
+          <div class="card-header">
+            <h3>🔔 Push Notification Controls</h3>
+          </div>
+          <div class="settings-body">
+            <p class="settings-desc">Enable push alerts to receive instant notifications on your Mac or Android phone when transactions occur or your weekly opponent updates their starting lineup.</p>
+            <div class="setting-toggle-row">
+              <div>
+                <strong>Transaction Alerts</strong>
+                <p class="small-text">Notify whenever any franchise makes an Add, Drop, or Waiver Claim.</p>
+              </div>
+              <input type="checkbox" id="toggle-tx-alerts" checked class="toggle-checkbox">
+            </div>
+            <div class="setting-toggle-row">
+              <div>
+                <strong>Opponent Lineup Change Alerts</strong>
+                <p class="small-text">Instant notification when your weekly opponent benches or starts a player.</p>
+              </div>
+              <input type="checkbox" id="toggle-opp-alerts" checked class="toggle-checkbox">
+            </div>
+            <button id="btn-enable-push" class="btn-primary">📱 Enable Web Push Notifications</button>
+            <div id="push-status-msg" class="status-msg"></div>
+          </div>
+        </div>
+
+        <!-- MFL Account & Session Config -->
+        <div class="settings-card">
+          <div class="card-header">
+            <h3>🔑 MFL Credentials & Sync</h3>
+          </div>
+          <div class="settings-body">
+            <div class="form-group">
+              <label for="mfl-username">MFL Username / Email:</label>
+              <input type="text" id="mfl-username" placeholder="Mentalcow" class="input-styled">
+            </div>
+            <div class="form-group">
+              <label for="mfl-password">MFL Password / Session Cookie:</label>
+              <input type="password" id="mfl-password" placeholder="••••••••••••" class="input-styled">
+            </div>
+            <div class="form-group">
+              <label for="mfl-franchise-id">Franchise ID:</label>
+              <input type="text" id="mfl-franchise-id" value="0001" class="input-styled">
+            </div>
+            <button id="btn-save-credentials" class="btn-secondary">Save Credentials & Test Session</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Test Notification Dispatcher -->
+      <div class="settings-card test-card">
+        <div class="card-header">
+          <h3>🧪 Test Notification Center</h3>
+        </div>
+        <div class="settings-body flex-row">
+          <button id="btn-test-tx-alert" class="btn-xs">Simulate Waiver Claim Notification</button>
+          <button id="btn-test-lineup-alert" class="btn-xs">Simulate Opponent Lineup Swap Alert</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Notification Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="field.js?v=20260913_1"></script>
+  <script src="app.js?v=20260913_1"></script>
+</body>
+</html>
