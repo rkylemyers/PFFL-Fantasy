@@ -181,7 +181,7 @@ class FootballField {
     const ySpacing = 75; // Spacing between stacked play lines
 
     playList.forEach((play, index) => {
-      const shrinkFactor = 1 - (index * 0.12); // Scale down older plays smoothly
+      const shrinkFactor = 1.0; // User requested to remove shrinking/fading
       const playY = baseY - (index * ySpacing);
       
       const isRightToLeft = play.isOpponent;
@@ -330,9 +330,10 @@ class FootballField {
         labelText = `${pName}: ${play.pts} PTS`;
       }
 
-      const fontSize = index === 0 ? 20 : Math.max(15, Math.round(18 * shrinkFactor));
+      const fontSize = 18; // Consistent font size for all plays
       const centerX = (startX + endX) / 2;
-      const textY = playY - (rectHeight / 2) - 10;
+      // Move text further up to easily see the arrows
+      const textY = playY - 26;
 
       const approxTextWidth = labelText.length * (fontSize * 0.64) + 18;
       const pillBg = this.createSVGElement('rect', {
