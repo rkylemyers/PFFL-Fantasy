@@ -179,6 +179,7 @@ class PFFLApp {
             for (const drive of sData.drives.previous) {
               if (!drive.plays) continue;
               for (const play of drive.plays) {
+                if (play.id) this.seenESPNPlayIds.add(play.id);
                 if (!play.text || !play.wallclock) continue;
                 
                 // Check if any of our players are in the text
@@ -264,7 +265,7 @@ class PFFLApp {
                       desc: play.text,
                       timeStamp: pStamp,
                       timeSortWeight: pTime.getTime(),
-                      startYard: play.start ? play.start.yardLine : 50,
+                      startYard: (play.start && play.start.yardsToEndzone) ? (100 - play.start.yardsToEndzone) : (play.start ? play.start.yardLine : 50),
                       yards: play.statYardage || 0,
                       team: pObj.team,
                       isPass: txt.includes('pass '),
@@ -354,7 +355,30 @@ class PFFLApp {
                   timeSortWeight: Date.now(),
                   desc: `🚨 LIVE: ${play.text} (+${fpts.toFixed(1)} pts)`,
                   team: match.team,
-                  startYard: comp.situation.yardLine || 25,
+                  startYard: (() => {
+                      if (!comp.situation) return 50;
+                      let pt = comp.situation.possessionText;
+                      if (!pt) return comp.situation.yardLine || 50;
+                      if (pt.toLowerCase() === '50' || pt.toLowerCase().includes('midfield')) return 50;
+                      
+                      let parts = pt.split(' ');
+                      if (parts.length >= 2) {
+                          let side = parts[0];
+                          let yd = parseInt(parts[1], 10);
+                          let possTeamId = comp.situation.possession;
+                          let possTeamCode = '';
+                          if (evt.competitions[0].competitors) {
+                              let cTeam = evt.competitions[0].competitors.find(c => c.id === possTeamId);
+                              if (cTeam) possTeamCode = cTeam.team.abbreviation.toUpperCase();
+                          }
+                          if (possTeamCode === side.toUpperCase()) {
+                              return yd; // Own territory
+                          } else {
+                              return 100 - yd; // Opponent territory
+                          }
+                      }
+                      return comp.situation.yardLine || 50;
+                  })(),
                   yards: play.statYardage || 0,
                   isTD: isTD,
                   isPass: play.text.toLowerCase().includes('pass '),
