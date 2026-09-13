@@ -133,10 +133,17 @@ class PFFLApp {
     }, 15000);
 
     // Poll ESPN Scoreboard every 10 seconds for real live plays
-    setInterval(() => {
-      this.pollESPN();
-    }, 10000);
     this.pollESPN();
+    let playCountdown = 10;
+    setInterval(() => {
+        playCountdown--;
+        if (playCountdown <= 0) {
+            playCountdown = 10;
+            this.pollESPN();
+        }
+        const cdElem = document.getElementById('play-countdown');
+        if (cdElem) cdElem.textContent = `Next Play Check: ${playCountdown}s`;
+    }, 1000);
   }
 
   async loadRealHistoricalPlays() {
