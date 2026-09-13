@@ -184,23 +184,35 @@ class FootballField {
     const ySpacing = 65; // Spacing between stacked play lines
 
     playList.forEach((play, index) => {
-      // index 0 = Most recent play (largest, closest to bottom)
-      // index 1..4 = Older plays (shrinking, stacked above)
       const shrinkFactor = 1 - (index * 0.15); // Scale down 100% -> 85% -> 70% -> 55% -> 40%
       const playY = baseY - (index * ySpacing);
       const isPos = play.isPos !== false && !(play.pts && play.pts.startsWith('-'));
-      const strokeColor = isPos ? '#00e676' : '#ff5252';
-      const fillColor = isPos ? 'rgba(0, 230, 118, 0.25)' : 'rgba(255, 82, 82, 0.25)';
+      const isTD = play.isTD || (play.desc && play.desc.includes("TOUCHDOWN"));
+      const isBigPlay = play.isBigPlay || (play.desc && play.desc.includes("BIG PLAY")) || play.yards >= 20;
+
+      // Color scheme based on play result (Touchdown = Gold, Big Play = Amber/Orange, Normal = Green/Red)
+      let strokeColor = isPos ? '#00e676' : '#ff5252';
+      let fillColor = isPos ? 'rgba(0, 230, 118, 0.25)' : 'rgba(255, 82, 82, 0.25)';
+
+      if (isTD) {
+        strokeColor = '#ffd600'; // Golden Touchdown
+        fillColor = 'rgba(255, 214, 0, 0.40)';
+      } else if (isBigPlay) {
+        strokeColor = '#ff9100'; // Amber/Orange Big Play
+        fillColor = 'rgba(255, 145, 0, 0.35)';
+      }
 
       let startX, endX;
       if (!isRightToLeft) {
-        // Left to Right progression (My Team)
-        startX = (10 + play.startYard) * this.yardWidth;
+        // Left-to-Right progression (My Team: Mentalcow driving towards Warhorse End Zone)
+        // 0 = My Goal Line (100 px), 100 = Opponent Goal Line (1100 px)
+        startX = (10 + Math.min(100, Math.max(0, play.startYard))) * this.yardWidth;
         endX = (10 + Math.min(100, Math.max(0, play.startYard + play.yards))) * this.yardWidth;
       } else {
-        // Right to Left progression (Opponent Team)
-        startX = (110 - play.startYard) * this.yardWidth;
-        endX = (110 - Math.min(100, Math.max(0, play.startYard + play.yards))) * this.yardWidth;
+        // Right-to-Left progression (Opponent Team: Warhorse driving towards Mentalcow End Zone)
+        // play.startYard is position relative to Mentalcow's Goal Line (0 = Mentalcow Goal Line, 100 = Warhorse Goal Line)
+        startX = (10 + Math.min(100, Math.max(0, play.startYard))) * this.yardWidth;
+        endX = (10 + Math.max(0, play.startYard - play.yards)) * this.yardWidth;
       }
 
       const boxMinX = Math.min(startX, endX);
@@ -227,11 +239,11 @@ class FootballField {
       const playRect = this.createSVGElement('rect', {
         x: boxMinX,
         y: playY - (rectHeight / 2),
-        width: Math.max(boxWidth, 10),
+        width: Math.max(boxWidth, 12),
         height: rectHeight,
         fill: fillColor,
         stroke: strokeColor,
-        'stroke-width': (2 * shrinkFactor).toString(),
+        'stroke-width': (isTD || isBigPlay ? 3 : 2 * shrinkFactor).toString(),
         rx: '4',
         class: 'play-rect'
       });
@@ -240,21 +252,38 @@ class FootballField {
       // 3. Play Trajectory Line
       const pathLine = this.createSVGElement('line', {
         x1: startX, y1: playY, x2: endX, y2: playY,
-        stroke: strokeColor, 'stroke-width': (5 * shrinkFactor).toString(),
+        stroke: strokeColor, 'stroke-width': (isTD || isBigPlay ? 7 : 5 * shrinkFactor).toString(),
         class: 'play-line'
       });
       playGroup.appendChild(pathLine);
 
-      // 4. Play Spot End Circle
+      // 4. Play Spot End Circle (with Touchdown Star/Double Ring if TD)
       const spotCircle = this.createSVGElement('circle', {
-        cx: endX, cy: playY, r: 12 * shrinkFactor,
-        fill: strokeColor, stroke: '#ffffff', 'stroke-width': '2',
+        cx: endX, cy: playY, r: (isTD ? 15 : 12) * shrinkFactor,
+        fill: strokeColor, stroke: '#ffffff', 'stroke-width': '2.5',
         class: 'play-circle'
       });
       playGroup.appendChild(spotCircle);
 
+      if (isTD) {
+        const tdRing = this.createSVGElement('circle', {
+          cx: endX, cy: playY, r: 20 * shrinkFactor,
+          fill: 'none', stroke: '#ffd600', 'stroke-width': '2',
+          'stroke-dasharray': '3,3', class: 'td-ring'
+        });
+        playGroup.appendChild(tdRing);
+      }
+
       // 5. Dark High-Contrast Background Pill & Extra Large Label Text
-      const labelText = index === 0 ? `🔥 RECENT PLAY: ${play.pts} PTS` : `PLAY -${index}: ${play.pts} PTS`;
+      let labelText = "";
+      if (isTD) {
+        labelText = `🚨 TOUCHDOWN! ${play.pts} PTS`;
+      } else if (isBigPlay) {
+        labelText = `🚨 BIG PLAY (+${play.yards} YDS)! ${play.pts} PTS`;
+      } else {
+        labelText = index === 0 ? `🔥 RECENT PLAY: ${play.pts} PTS` : `PLAY -${index}: ${play.pts} PTS`;
+      }
+
       const fontSize = index === 0 ? 20 : Math.max(15, Math.round(18 * shrinkFactor));
       const centerX = (startX + endX) / 2;
       const textY = playY - (rectHeight / 2) - 10;
@@ -274,7 +303,7 @@ class FootballField {
       playGroup.appendChild(pillBg);
 
       const playText = this.createSVGText(labelText, centerX, textY + 2, {
-        fill: isPos ? '#00e676' : '#ff5252',
+        fill: isTD ? '#ffd600' : (isBigPlay ? '#ff9100' : (isPos ? '#00e676' : '#ff5252')),
         'font-size': `${fontSize}px`,
         'font-weight': '900',
         'text-anchor': 'middle',

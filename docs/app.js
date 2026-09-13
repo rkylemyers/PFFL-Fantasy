@@ -189,6 +189,18 @@ class PFFLApp {
     });
   }
 
+  getFranchiseLogo(fMeta) {
+    if (!fMeta) return "https://www44.myfantasyleague.com/fflnet2025/newhelmets/nh-0220.png";
+    let logo = fMeta.logo || fMeta.icon || "";
+    if (!logo || logo.includes("imageshack") || !logo.startsWith("https://")) {
+      logo = fMeta.icon || "";
+    }
+    if (!logo || logo.includes("imageshack") || !logo.startsWith("https://")) {
+      return "https://www44.myfantasyleague.com/fflnet2025/newhelmets/nh-0220.png";
+    }
+    return logo;
+  }
+
   renderLiveMatchup(matchupIdx = 0) {
     const matchups = (this.liveScoringData.matchup) || [];
     if (!matchups[matchupIdx]) return;
@@ -201,25 +213,28 @@ class PFFLApp {
     const f1Meta = franchises.find(f => f.id === team1Data.id) || { name: "Home Team", logo: "" };
     const f2Meta = franchises.find(f => f.id === team2Data.id) || { name: "Away Team", logo: "" };
 
+    const f1Logo = this.getFranchiseLogo(f1Meta);
+    const f2Logo = this.getFranchiseLogo(f2Meta);
+
     this.field.setTeamNames(f1Meta.name, f2Meta.name);
 
     document.getElementById("banner-left-name").textContent = f1Meta.name;
-    document.getElementById("banner-left-logo").src = f1Meta.logo || f1Meta.icon || "https://www44.myfantasyleague.com/fflnetdynamic2021/44108_league_logo.jpg";
+    document.getElementById("banner-left-logo").src = f1Logo;
     document.getElementById("banner-left-score").textContent = parseFloat(team1Data.score || "0.00").toFixed(2);
     document.getElementById("banner-left-proj").textContent = (parseFloat(team1Data.score || "0") + (parseInt(team1Data.playersYetToPlay || "0") * 10.5)).toFixed(1);
 
     document.getElementById("banner-right-name").textContent = f2Meta.name;
-    document.getElementById("banner-right-logo").src = f2Meta.logo || f2Meta.icon || "https://www44.myfantasyleague.com/fflnetdynamic2021/44108_league_logo.jpg";
+    document.getElementById("banner-right-logo").src = f2Logo;
     document.getElementById("banner-right-score").textContent = parseFloat(team2Data.score || "0.00").toFixed(2);
     document.getElementById("banner-right-proj").textContent = (parseFloat(team2Data.score || "0") + (parseInt(team2Data.playersYetToPlay || "0") * 10.5)).toFixed(1);
 
     document.getElementById("my-team-name").textContent = f1Meta.name;
-    document.getElementById("my-team-logo").src = f1Meta.logo || f1Meta.icon || "https://www44.myfantasyleague.com/fflnetdynamic2021/44108_league_logo.jpg";
+    document.getElementById("my-team-logo").src = f1Logo;
     document.getElementById("my-team-score").textContent = parseFloat(team1Data.score || "0.00").toFixed(2);
     document.getElementById("my-team-proj").textContent = (parseFloat(team1Data.score || "0") + (parseInt(team1Data.playersYetToPlay || "0") * 10.5)).toFixed(1);
 
     document.getElementById("opp-team-name").textContent = f2Meta.name;
-    document.getElementById("opp-team-logo").src = f2Meta.logo || f2Meta.icon || "https://www44.myfantasyleague.com/fflnetdynamic2021/44108_league_logo.jpg";
+    document.getElementById("opp-team-logo").src = f2Logo;
     document.getElementById("opp-team-score").textContent = parseFloat(team2Data.score || "0.00").toFixed(2);
     document.getElementById("opp-team-proj").textContent = (parseFloat(team2Data.score || "0") + (parseInt(team2Data.playersYetToPlay || "0") * 10.5)).toFixed(1);
 
@@ -230,11 +245,9 @@ class PFFLApp {
     const oppFeed = document.getElementById("opp-team-play-feed");
 
     if (this.currentViewMode === "roster") {
-      // Sort Roster Totals view: Active scoring players first, ordered by time
       if (myFeed) myFeed.innerHTML = team1Starters.map(p => this.createLineupTotalRowHTML(p, false)).join('');
       if (oppFeed) oppFeed.innerHTML = team2Starters.map(p => this.createLineupTotalRowHTML(p, true)).join('');
     } else {
-      // VIEW B: Running Scoring Stream (STRICT REVERSE CHRONOLOGICAL ORDER - Most Recent on Top!)
       if (myFeed) myFeed.innerHTML = this.createRunningStreamHTML(team1Starters, false);
       if (oppFeed) oppFeed.innerHTML = this.createRunningStreamHTML(team2Starters, true);
     }
@@ -292,8 +305,9 @@ class PFFLApp {
       let last5Plays = [];
       let detailedPlayDesc = "";
       let timeStamp = "";
-      let timeSortWeight = 0; // Higher weight = more recent (top of log)
+      let timeSortWeight = 0;
       let isBigPlay = false;
+      let isTD = false;
 
       if (scoreNum > 0) {
         const part1 = (scoreNum * 0.4).toFixed(1);
@@ -301,60 +315,81 @@ class PFFLApp {
         pointLogs = [`+${part1}`, `+${part2}`];
 
         const ydsGain = Math.min(38, Math.max(12, Math.round(scoreNum * 1.8)));
+        let playStartYard = 35;
+        let playYards = ydsGain;
 
-        // Real play assignment with exact timestamps & Big Play Detection (> 20 yds or TD)
         if (cleanName.toLowerCase().includes("strange")) {
-          // Brenton Strange TD TODAY at 2:22 PM (Most recent!)
+          // Brenton Strange TD: 18 yd pass starting at Warhorse 18 yard line (Yard 82) into Warhorse End Zone (Yard 100)
           timeStamp = "2:22 PM";
           timeSortWeight = 1422;
           isBigPlay = true;
+          isTD = true;
+          playStartYard = 82;
+          playYards = 18;
           detailedPlayDesc = "🚨 TOUCHDOWN! Brenton Strange 18 yd pass reception from Trevor Lawrence down to MIA end zone (+6.0 pts)";
         } else if (cleanName.toLowerCase().includes("st. brown") || cleanName.toLowerCase().includes("brown")) {
           timeStamp = "1:54 PM";
           timeSortWeight = 1354;
-          isBigPlay = ydsGain >= 20;
+          isBigPlay = true;
+          playStartYard = 60;
+          playYards = 22;
           detailedPlayDesc = `${cleanName} 22 yard pass reception from Jared Goff down to LAR 18 yard line`;
         } else if (cleanName.toLowerCase().includes("tuten")) {
           timeStamp = "1:15 PM";
           timeSortWeight = 1315;
+          playStartYard = 68;
+          playYards = 18;
           detailedPlayDesc = `Bhayshul Tuten 18 yard rush off left tackle down to MIA 14 yard line`;
         } else if (cleanName.toLowerCase().includes("adams")) {
-          // Davante Adams played Thursday / Friday vs Chargers (LAC)
           timeStamp = "Thu 8:40 PM";
           timeSortWeight = 840;
           isBigPlay = true;
+          playStartYard = 60;
+          playYards = 24;
           detailedPlayDesc = "Davante Adams 24 yard pass reception from Gardner Minshew down to LAC 16 yard line";
         } else if (cleanName.toLowerCase().includes("samuel")) {
-          // Deebo Samuel played the RAMS (LAR)
           timeStamp = "2:10 PM";
           timeSortWeight = 1410;
           isBigPlay = true;
+          playStartYard = 42;
+          playYards = 28;
           detailedPlayDesc = "Deebo Samuel 28 yard pass reception from Brock Purdy down to LAR 14 yard line";
         } else if (cleanName.toLowerCase().includes("barkley")) {
           timeStamp = "1:45 PM";
           timeSortWeight = 1345;
           isBigPlay = ydsGain >= 20;
+          playStartYard = 70;
+          playYards = 18;
           detailedPlayDesc = "Saquon Barkley 18 yard rush up the middle down to WSH 12 yard line";
         } else if (cleanName.toLowerCase().includes("jackson")) {
           timeStamp = "2:18 PM";
           timeSortWeight = 1418;
           isBigPlay = true;
+          playStartYard = 42;
+          playYards = 24;
           detailedPlayDesc = "Lamar Jackson 24 yard pass completion to Zay Flowers down to KC 18 yard line";
         } else if (cleanName.toLowerCase().includes("lawrence")) {
           timeStamp = "2:20 PM";
           timeSortWeight = 1420;
           isBigPlay = true;
+          isTD = true;
+          playStartYard = 74;
+          playYards = 26;
           detailedPlayDesc = "Trevor Lawrence 26 yard touchdown pass to Brian Thomas Jr. down to MIA end zone";
         } else if (cleanName.toLowerCase().includes("smith-njigba")) {
           timeStamp = "2:25 PM";
           timeSortWeight = 1425;
           isBigPlay = true;
+          playStartYard = 50;
+          playYards = 36;
           detailedPlayDesc = "🚨 BIG PLAY! Jaxon Smith-Njigba 36 yard pass reception from Geno Smith down to DEN 14 yard line";
         } else {
           timeStamp = `${1 + (idx % 2)}:${10 + idx * 4} PM`;
           timeSortWeight = 1300 + idx * 4;
           isBigPlay = ydsGain >= 20;
-          const endYard = Math.max(6, 100 - (35 + ydsGain));
+          playYards = ydsGain;
+          playStartYard = Math.max(20, Math.min(80, 100 - (15 + ydsGain)));
+          const endYard = Math.max(6, 100 - (playStartYard + playYards));
           if (pos === 'RB') {
             detailedPlayDesc = `${cleanName} ${ydsGain} yard rush off tackle down to opponent ${endYard} yard line`;
           } else if (pos === 'K') {
@@ -366,22 +401,22 @@ class PFFLApp {
           }
         }
 
-        const secondGain = Math.max(6, Math.round(ydsGain * 0.6));
-        const secondYardLine = Math.max(8, 100 - (20 + secondGain));
+        const secondGain = Math.max(6, Math.round(playYards * 0.6));
+        const secondStartYard = Math.max(15, playStartYard - 25);
         let secondDesc = "";
         if (pos === 'RB') {
-          secondDesc = `${cleanName} ${secondGain} yard rush off right guard down to opponent ${secondYardLine} yard line`;
+          secondDesc = `${cleanName} ${secondGain} yard rush off right guard down to opponent ${100 - (secondStartYard + secondGain)} yard line`;
         } else if (pos === 'K') {
           secondDesc = `${cleanName} extra point GOOD`;
         } else if (pos === 'DST') {
           secondDesc = `${cleanName} pass deflection on 3rd down`;
         } else {
-          secondDesc = `${cleanName} ${secondGain} yard pass reception down to opponent ${secondYardLine} yard line`;
+          secondDesc = `${cleanName} ${secondGain} yard pass reception down to opponent ${100 - (secondStartYard + secondGain)} yard line`;
         }
 
         last5Plays = [
-          { startYard: 35, yards: ydsGain, pts: `+${scoreNum.toFixed(2)}`, isPos: true, desc: detailedPlayDesc },
-          { startYard: 20, yards: secondGain, pts: `+${part2}`, isPos: true, desc: secondDesc }
+          { startYard: playStartYard, yards: playYards, pts: `+${scoreNum.toFixed(2)}`, isPos: true, isTD: isTD, isBigPlay: isBigPlay, desc: detailedPlayDesc },
+          { startYard: secondStartYard, yards: secondGain, pts: `+${part2}`, isPos: true, isTD: false, isBigPlay: false, desc: secondDesc }
         ];
       } else {
         pointLogs = [upcomingGameInfo];
