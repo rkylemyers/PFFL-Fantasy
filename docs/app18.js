@@ -202,6 +202,7 @@ class PFFLApp {
                     
                     let pts = 0;
                     let txt = play.text.toLowerCase();
+                    if (txt.includes('incomplete') || (txt.includes('penalty') && !txt.includes('declined')) || txt.includes('no play')) continue;
                     let pos = pObj.pos || (pObj.position ? pObj.position.toUpperCase() : 'RB');
                     if (pos === 'DEF' || pos === 'DST') {
                        // DST scoring is too complex to parse from play text, skip parsing
@@ -320,6 +321,9 @@ class PFFLApp {
           const play = comp.situation.lastPlay;
           if (this.seenESPNPlayIds.has(play.id)) return;
           this.seenESPNPlayIds.add(play.id);
+          
+          let txt = play.text ? play.text.toLowerCase() : '';
+          if (txt.includes('incomplete') || (txt.includes('penalty') && !txt.includes('declined')) || txt.includes('no play')) return;
 
           // Check if any athlete involved matches our active roster
           if (play.athletesInvolved) {
