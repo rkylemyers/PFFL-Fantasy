@@ -359,6 +359,7 @@ class PFFLApp {
   }
 
   buildStrictPositionalLineup(franchiseData) {
+    if (!this.playerHistoryCache) this.playerHistoryCache = new Map();
     const rawStarters = (franchiseData.players && franchiseData.players.player) || [];
     
     const sampleOpponents = [
@@ -378,6 +379,13 @@ class PFFLApp {
       const scoreNum = parseFloat(pObj.score || "0.00");
       const isPos = scoreNum >= 0;
       let pos = (pMeta.position || 'RB').toUpperCase();
+      
+      if (this.playerHistoryCache.has(pObj.id)) {
+         const cached = this.playerHistoryCache.get(pObj.id);
+         if (cached.scoreNum === scoreNum) {
+             return cached;
+         }
+      }
       if (pos === 'DEF') pos = 'DST';
       if (pos === 'PK') pos = 'K';
 
@@ -520,7 +528,7 @@ class PFFLApp {
         ];
       }
 
-      return {
+      const finalPlayerObj = {
         id: pObj.id,
         name: cleanName,
         pos: pos,
@@ -537,6 +545,8 @@ class PFFLApp {
         upcomingGameInfo: upcomingGameInfo,
         gameSecondsRemaining: parseInt(pObj.gameSecondsRemaining || "3600")
       };
+      this.playerHistoryCache.set(pObj.id, finalPlayerObj);
+      return finalPlayerObj;
     });
 
     const slots = ['QB', 'RB', 'RB', 'WR', 'WR', 'FLEX', 'TE', 'K', 'DST'];
