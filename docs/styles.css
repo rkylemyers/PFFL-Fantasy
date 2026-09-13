@@ -951,9 +951,8 @@ body.dark-theme {
 /* ------------------------------------- */
 @media (max-width: 900px) {
   /* Matchup Strip */
-  .matchup-strip-container {
-    grid-template-columns: repeat(2, 1fr);
-    overflow-x: auto;
+  .matchup-cards-strip {
+    grid-template-columns: 1fr;
   }
   
   /* Field Header Split (My Team vs Opponent) */
