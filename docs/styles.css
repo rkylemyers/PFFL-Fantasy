@@ -1004,6 +1004,14 @@ body.dark-theme {
 
 /* FIX MATCHUP BANNER HEADER ON MOBILE */
 @media (max-width: 900px) {
+  html, body {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+  .container {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
   .matchup-banner-header {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1012,12 +1020,22 @@ body.dark-theme {
       "score score";
     padding: 0.8rem;
     gap: 0.5rem;
+    overflow: hidden;
   }
   .banner-team {
     width: 100%;
-    flex-direction: column;
+    flex-direction: column !important;
     justify-content: center;
+    align-items: center;
     text-align: center;
+  }
+  .banner-team-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .banner-team-logo {
+    margin-bottom: 5px;
   }
   .banner-team.banner-left { grid-area: teamleft; }
   .banner-team.banner-right { grid-area: teamright; }

@@ -90,9 +90,18 @@ class PFFLApp {
         btnNotif.addEventListener("click", () => {
             try {
                 if (!("Notification" in window)) {
-                    alert("Notifications are not supported in this browser.");
+                    alert("System Error: Your specific mobile browser / OS version completely blocks Web Push Notifications (Missing window.Notification API). If on iOS, ensure you are on iOS 16.4+.");
                     return;
                 }
+                if (Notification.permission === "denied") {
+                    alert("Notifications are permanently blocked by your phone! You must open your phone's Settings app, find this installed Web App, and explicitly grant Notification permissions.");
+                    return;
+                }
+                if (Notification.permission === "granted") {
+                    alert("Notifications are already enabled and active!");
+                    return;
+                }
+                
                 
                 const handlePerm = (perm) => {
                     if (perm === "granted") {
