@@ -150,8 +150,10 @@ class PFFLApp {
 
       const playerMap = new Map();
       allActivePlayers.forEach(p => {
-        let n = p.name.split(' ').slice(-1)[0];
-        playerMap.set(n, p);
+        let espnName = p.name.charAt(0) + '.' + p.name.split(' ').slice(1).join(' ');
+        // If they have Jr., III, etc. ESPN sometimes drops it or keeps it, but this covers 99% of cases.
+        // For defense, p.name might be "Lions, DET". Let's handle DST manually if needed, but for now just players.
+        playerMap.set(espnName, p);
       });
 
       for (const gid of gameIds) {
@@ -165,11 +167,13 @@ class PFFLApp {
                 if (!play.text || !play.wallclock) continue;
                 
                 // Check if any of our players are in the text
-                for (const [lastName, pObj] of playerMap.entries()) {
-                  if (play.text.includes(lastName)) {
+                for (const [espnName, pObj] of playerMap.entries()) {
+                  // Some edge cases for ESPN text: they might not use a space for some names, or might just use last name for DEF.
+                  // But checking exactly `A.St. Brown` works perfectly for skill players.
+                  if (play.text.includes(espnName)) {
                     // It's a match! Format the play
                     let pTime = new Date(play.wallclock);
-                    let pStamp = pTime.toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'}) + (play.clock ? ` (Q${play.period} ${play.clock.displayValue})` : '');
+                    let pStamp = pTime.toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'}) + (play.clock ? ` (Q${play.period.number} ${play.clock.displayValue})` : '');
                     
                     let isTD = play.text.includes('TOUCHDOWN');
                     let isBigPlay = isTD || play.statYardage >= 20;
