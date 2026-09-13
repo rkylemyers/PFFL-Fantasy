@@ -78,6 +78,21 @@ class PFFLApp {
         btnViewRoster.classList.remove("active");
         this.renderLiveMatchup(this.currentMatchupIndex);
       });
+      
+      const btnNotif = document.getElementById("btn-enable-notifications");
+      if (btnNotif) {
+        if (Notification.permission === "granted") btnNotif.style.opacity = "0.5";
+        btnNotif.addEventListener("click", () => {
+            Notification.requestPermission().then(perm => {
+                if (perm === "granted") {
+                    btnNotif.style.opacity = "0.5";
+                    new Notification("Notifications Enabled!", { body: "You will now receive scoring alerts for your team.", icon: "favicon.png" });
+                } else {
+                    alert("Notifications were denied. Please enable them in your browser settings.");
+                }
+            });
+        });
+      }
     }
   }
 
@@ -460,6 +475,13 @@ class PFFLApp {
                 
                 this.espnPlayBuffer.unshift(playObj);
                 newPlaysFound = true;
+                
+                // Send push notification if it's my team
+                if (this.team1Starters && this.team1Starters.includes(match) && Notification.permission === "granted") {
+                    const title = `🚨 ${match.name} (+${fpts.toFixed(1)} pts)`;
+                    const body = play.text;
+                    new Notification(title, { body: body, icon: "favicon.png" });
+                }
 
                 if (this.field) {
                   let allPlays1 = this.getTeamAllPlays(this.team1Starters).map(p => ({...p, isOpponent: false}));

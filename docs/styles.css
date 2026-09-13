@@ -945,3 +945,44 @@ body.dark-theme {
   border-radius: 6px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
 }
+
+/* ------------------------------------- */
+/* MOBILE RESPONSIVENESS                 */
+/* ------------------------------------- */
+@media (max-width: 900px) {
+  /* Matchup Strip */
+  .matchup-strip-container {
+    grid-template-columns: repeat(2, 1fr);
+    overflow-x: auto;
+  }
+  
+  /* Field Header Split (My Team vs Opponent) */
+  .field-split-header {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  /* Bottom Split Panels (Running Stream / Lineup) */
+  .head-to-head-grid, .analysis-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Navbar */
+  .navbar {
+    flex-direction: column;
+    padding: 0.5rem;
+  }
+  .nav-left, .nav-right {
+    width: 100%;
+    justify-content: center;
+    margin-bottom: 0.5rem;
+  }
+  
+  /* Other Grids */
+  .dues-grid {
+    grid-template-columns: 1fr;
+  }
+  .ledger-split {
+    grid-template-columns: 1fr;
+  }
+}
