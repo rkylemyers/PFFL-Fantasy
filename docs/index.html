@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260913_1">
+  <link rel="stylesheet" href="styles.css?v=20260913_2">
 </head>
 <body class="dark-theme">
   <!-- Top Global Navigation Bar -->
@@ -44,6 +44,7 @@
       <span class="live-status-pill" id="live-status-pill">
         <span class="dot"></span> LIVE WEEK 1
       </span>
+      <span class="last-sync-time" id="last-sync-timestamp">LAST SYNC: 12:46 PM</span>
       <button id="btn-sync-data" class="btn-icon" title="Refresh Live Data">🔄</button>
     </div>
   </header>
@@ -53,14 +54,32 @@
 
     <!-- PAGE 1: LIVE SCORING & MATCHUP FIELD -->
     <section id="tab-live" class="tab-page active">
-      <!-- Top Matchup Selector Header -->
-      <div class="matchup-selector-bar">
-        <label for="matchup-dropdown" class="section-label">Select League Matchup:</label>
-        <select id="matchup-dropdown" class="select-styled">
-          <!-- Dynamically populated -->
-        </select>
-        <div class="matchup-score-banner" id="matchup-score-banner">
-          <!-- Rendered dynamically -->
+
+      <!-- Overall Matchup Scoreboard Banner (Replaces top dropdown) -->
+      <div class="matchup-banner-header" id="overall-scoreboard-banner">
+        <div class="banner-team banner-left">
+          <img id="banner-left-logo" src="" alt="Left Team" class="banner-team-logo">
+          <div class="banner-team-meta">
+            <h2 id="banner-left-name">Mentalcow</h2>
+            <span class="banner-proj">Proj: <span id="banner-left-proj">0.0</span></span>
+          </div>
+        </div>
+
+        <div class="banner-center-score">
+          <div class="banner-score-digits">
+            <span id="banner-left-score">0.00</span>
+            <span class="score-vs">-</span>
+            <span id="banner-right-score">0.00</span>
+          </div>
+          <span class="live-matchup-tag">WEEK 1 MATCHUP</span>
+        </div>
+
+        <div class="banner-team banner-right">
+          <div class="banner-team-meta align-right">
+            <h2 id="banner-right-name">Warhorse</h2>
+            <span class="banner-proj">Proj: <span id="banner-right-proj">0.0</span></span>
+          </div>
+          <img id="banner-right-logo" src="" alt="Right Team" class="banner-team-logo">
         </div>
       </div>
 
@@ -68,11 +87,8 @@
       <div class="live-field-card">
         <div class="field-header">
           <div class="game-meta">
-            <span class="live-tag">LIVE BROADCAST</span>
-            <span id="current-play-summary">Select or hover a play below to simulate execution</span>
-          </div>
-          <div class="field-controls">
-            <button class="btn-xs" id="btn-field-reset">Reset View</button>
+            <span class="live-tag">LIVE STACKED VIEW</span>
+            <span id="current-play-summary">Hover any player in the feed to visualize their last 5 plays on the field</span>
           </div>
         </div>
 
@@ -86,10 +102,10 @@
 
       <!-- Live Fantasy Head-to-Head Split Panel -->
       <div class="head-to-head-grid">
-        <!-- My Team Panel -->
+        <!-- My Team Panel (Left) -->
         <div class="team-panel my-team-panel">
           <div class="team-header">
-            <img id="my-team-logo" src="https://www44.myfantasyleague.com/fflnetdynamic2019/44108_franchise_logo0001.jpg" alt="My Team" class="franchise-logo">
+            <img id="my-team-logo" src="" alt="My Team" class="franchise-logo">
             <div class="team-info">
               <h2 id="my-team-name">Mentalcow</h2>
               <div class="score-display">
@@ -104,12 +120,12 @@
           </div>
         </div>
 
-        <!-- Opponent Team Panel -->
+        <!-- Opponent Team Panel (Right) -->
         <div class="team-panel opp-team-panel">
           <div class="team-header">
-            <img id="opp-team-logo" src="https://www44.myfantasyleague.com/fflnet2025/newhelmets/nh-0134.png" alt="Opponent Team" class="franchise-logo">
+            <img id="opp-team-logo" src="" alt="Opponent Team" class="franchise-logo">
             <div class="team-info">
-              <h2 id="opp-team-name">Blitzkrieg</h2>
+              <h2 id="opp-team-name">Warhorse</h2>
               <div class="score-display">
                 <span class="score-num" id="opp-team-score">0.00</span>
                 <span class="proj-num">Proj: <span id="opp-team-proj">0.0</span></span>
@@ -122,6 +138,16 @@
           </div>
         </div>
       </div>
+
+      <!-- Bottom Panel: League Matchup Strip (Single View of all 6 Matchups, My Matchup First) -->
+      <div class="bottom-matchups-section">
+        <div class="section-header">
+          <h3>🏈 League Matchup Scoreboard (Click any matchup to load live view)</h3>
+        </div>
+        <div class="matchup-cards-strip" id="league-matchup-strip">
+          <!-- Dynamically populated with all 6 matchups -->
+        </div>
+      </div>
     </section>
 
     <!-- PAGE 2: MY ROSTER & LINEUP SUBMITTER -->
@@ -132,7 +158,6 @@
           <p class="page-subtitle">Drag or click to move players between Active Lineup, Bench, and Injured Reserve (IR).</p>
         </div>
         <div class="roster-actions">
-          <button id="btn-auto-optimize" class="btn-secondary">⚡ Auto-Optimize Lineup</button>
           <button id="btn-submit-lineup" class="btn-primary">🚀 Submit Lineup to MFL</button>
         </div>
       </div>
@@ -234,7 +259,6 @@
 
     <!-- PAGE 3: ADD/DROP/WAIVER CLAIM & DUES TRACKER -->
     <section id="tab-transactions" class="tab-page">
-      <!-- Top Summary Dues Cards -->
       <div class="dues-summary-grid">
         <div class="dues-card pot-card">
           <span class="dues-label">Total League Pot</span>
@@ -255,7 +279,6 @@
 
       <!-- Transaction Log & Team Breakdown -->
       <div class="dues-content-split">
-        <!-- Left: Add/Drop Waiver Action Center -->
         <div class="action-card">
           <div class="card-header">
             <h3>➕ Submit Supplemental Waiver Claim / Free Agent Add</h3>
@@ -281,7 +304,6 @@
           </form>
         </div>
 
-        <!-- Right: Team Dues Ledger -->
         <div class="ledger-card">
           <div class="card-header">
             <h3>📊 Franchise Dues & Transaction Balance Ledger</h3>
@@ -306,11 +328,9 @@
         </div>
       </div>
 
-      <!-- League-Wide Transaction History Log -->
       <div class="transaction-history-card">
         <div class="card-header">
           <h3>📜 League-Wide Transaction Stream</h3>
-          <input type="text" id="transaction-search" placeholder="Filter team or player..." class="input-sm">
         </div>
         <div class="transaction-feed" id="league-transaction-feed">
           <!-- Dynamic feed items -->
@@ -328,7 +348,6 @@
       </div>
 
       <div class="settings-grid">
-        <!-- Device Web Push Card -->
         <div class="settings-card">
           <div class="card-header">
             <h3>🔔 Push Notification Controls</h3>
@@ -354,7 +373,6 @@
           </div>
         </div>
 
-        <!-- MFL Account & Session Config -->
         <div class="settings-card">
           <div class="card-header">
             <h3>🔑 MFL Credentials & Sync</h3>
@@ -376,17 +394,6 @@
           </div>
         </div>
       </div>
-
-      <!-- Test Notification Dispatcher -->
-      <div class="settings-card test-card">
-        <div class="card-header">
-          <h3>🧪 Test Notification Center</h3>
-        </div>
-        <div class="settings-body flex-row">
-          <button id="btn-test-tx-alert" class="btn-xs">Simulate Waiver Claim Notification</button>
-          <button id="btn-test-lineup-alert" class="btn-xs">Simulate Opponent Lineup Swap Alert</button>
-        </div>
-      </div>
     </section>
 
   </div>
@@ -395,7 +402,7 @@
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Scripts -->
-  <script src="field.js?v=20260913_1"></script>
-  <script src="app.js?v=20260913_1"></script>
+  <script src="field.js?v=20260913_2"></script>
+  <script src="app.js?v=20260913_2"></script>
 </body>
 </html>

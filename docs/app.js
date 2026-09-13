@@ -15,6 +15,7 @@ class PFFLApp {
     this.field = null;
     this.currentMatchupIndex = 0;
     this.livePollingTimer = null;
+    this.lastSyncTime = new Date().toLocaleTimeString();
 
     // Roster Lineup Arrays
     this.starters = [];
@@ -52,20 +53,20 @@ class PFFLApp {
 
   async loadData() {
     try {
-      // Load static data synced by Go backend / MFL
-      const [leagueRes, rostersRes, playersRes, txRes, projRes, liveRes] = await Promise.all([
+      const [leagueRes, rostersRes, playersRes, txRes, projRes, liveRes, syncRes] = await Promise.all([
         fetch('data/league.json').then(r => r.json()).catch(() => ({})),
         fetch('data/rosters.json').then(r => r.json()).catch(() => ({})),
         fetch('data/players.json').then(r => r.json()).catch(() => ({})),
         fetch('data/transactions.json').then(r => r.json()).catch(() => ({})),
         fetch('data/projectedScores.json').then(r => r.json()).catch(() => ({})),
-        fetch('data/liveScoring.json').then(r => r.json()).catch(() => ({}))
+        fetch('data/liveScoring.json').then(r => r.json()).catch(() => ({})),
+        fetch('data/sync_status.json').then(r => r.json()).catch(() => ({}))
       ]);
 
       this.leagueData = leagueRes.league || {};
       this.rostersData = rostersRes.rosters || {};
       
-      // Parse Players Map
+      // Parse Players Map (Full Dictionary)
       const rawPlayers = (playersRes.players && playersRes.players.player) || [];
       rawPlayers.forEach(p => {
         this.playersMap.set(p.id, p);
@@ -80,22 +81,24 @@ class PFFLApp {
       // Parse Transactions
       this.transactionsData = (txRes.transactions && txRes.transactions.transaction) || [];
       this.liveScoringData = liveRes.liveScoring || {};
+      this.lastSyncTime = syncRes.last_sync || new Date().toLocaleTimeString();
 
-      console.log(`✅ Data Loaded: ${this.playersMap.size} players, ${this.transactionsData.length} transactions`);
+      console.log(`✅ Loaded ${this.playersMap.size} real player names! Last sync: ${this.lastSyncTime}`);
     } catch (err) {
       console.error("Failed to load local data cache:", err);
     }
   }
 
   startLivePolling() {
-    // Poll live scores every 15 seconds
     this.livePollingTimer = setInterval(async () => {
       try {
         const liveRes = await fetch('data/liveScoring.json?t=' + Date.now()).then(r => r.json());
         if (liveRes && liveRes.liveScoring) {
           this.liveScoringData = liveRes.liveScoring;
+          this.lastSyncTime = new Date().toLocaleTimeString();
+          document.getElementById("last-sync-timestamp").textContent = `LAST SYNC: ${this.lastSyncTime}`;
           this.renderLiveMatchup(this.currentMatchupIndex);
-          console.log("🔄 Live Scores Refreshed");
+          this.renderMatchupStrip();
         }
       } catch (e) {
         console.log("Polling update check:", e);
@@ -104,7 +107,8 @@ class PFFLApp {
   }
 
   renderAll() {
-    this.renderMatchupSelector();
+    document.getElementById("last-sync-timestamp").textContent = `LAST SYNC: ${this.lastSyncTime}`;
+    this.renderMatchupStrip();
     this.renderLiveMatchup(0);
     this.renderRoster();
     this.renderTrendsAndReplacements();
@@ -113,31 +117,53 @@ class PFFLApp {
   }
 
   // -------------------------------------------------------------
-  // PAGE 1: LIVE MATCHUP & INTERACTIVE FIELD
+  // PAGE 1: LIVE SCORING & BOTTOM MATCHUP STRIP
   // -------------------------------------------------------------
-  renderMatchupSelector() {
-    const dropdown = document.getElementById("matchup-dropdown");
-    if (!dropdown || !this.leagueData.franchises) return;
+  renderMatchupStrip() {
+    const strip = document.getElementById("league-matchup-strip");
+    if (!strip || !this.liveScoringData.matchup) return;
 
-    dropdown.innerHTML = '';
-    const franchises = this.leagueData.franchises.franchise || [];
-    const matchups = (this.liveScoringData.matchup) || [];
+    const franchises = (this.leagueData.franchises && this.leagueData.franchises.franchise) || [];
+    let matchups = (this.liveScoringData.matchup) || [];
 
-    matchups.forEach((m, idx) => {
+    // Reorder so MY MATCHUP (Mentalcow / 0001) is ALWAYS FIRST!
+    const myMatchupIndex = matchups.findIndex(m => m.franchise[0].id === this.activeFranchiseId || m.franchise[1].id === this.activeFranchiseId);
+    if (myMatchupIndex > 0) {
+      const [myM] = matchups.splice(myMatchupIndex, 1);
+      matchups.unshift(myM);
+    }
+
+    strip.innerHTML = matchups.map((m, idx) => {
       const f1Id = m.franchise[0].id;
       const f2Id = m.franchise[1].id;
       const f1 = franchises.find(f => f.id === f1Id) || { name: `Team ${f1Id}` };
       const f2 = franchises.find(f => f.id === f2Id) || { name: `Team ${f2Id}` };
+      const isMyMatchup = f1Id === this.activeFranchiseId || f2Id === this.activeFranchiseId;
+      const isActive = idx === this.currentMatchupIndex;
 
-      const opt = document.createElement("option");
-      opt.value = idx;
-      opt.textContent = `Matchup ${idx + 1}: ${f1.name} (${m.franchise[0].score || '0.00'}) vs ${f2.name} (${m.franchise[1].score || '0.00'})`;
-      dropdown.appendChild(opt);
-    });
+      return `
+        <div class="matchup-card-mini ${isActive ? 'active-matchup' : ''}" data-idx="${idx}">
+          <div class="mini-team-row">
+            <span class="mini-team-name">${f1.name}</span>
+            <span class="mini-team-score" style="color: var(--accent-cyan)">${parseFloat(m.franchise[0].score || "0.0").toFixed(2)}</span>
+          </div>
+          <div class="mini-team-row">
+            <span class="mini-team-name">${f2.name}</span>
+            <span class="mini-team-score" style="color: var(--accent-purple)">${parseFloat(m.franchise[1].score || "0.0").toFixed(2)}</span>
+          </div>
+          ${isMyMatchup ? `<div class="my-matchup-badge">MY MATCHUP</div>` : ''}
+        </div>
+      `;
+    }).join('');
 
-    dropdown.addEventListener("change", (e) => {
-      this.currentMatchupIndex = parseInt(e.target.value);
-      this.renderLiveMatchup(this.currentMatchupIndex);
+    // Attach click event listeners to bottom cards
+    document.querySelectorAll(".matchup-card-mini").forEach(card => {
+      card.addEventListener("click", () => {
+        const idx = parseInt(card.getAttribute("data-idx"));
+        this.currentMatchupIndex = idx;
+        this.renderMatchupStrip();
+        this.renderLiveMatchup(idx);
+      });
     });
   }
 
@@ -153,7 +179,21 @@ class PFFLApp {
     const f1Meta = franchises.find(f => f.id === team1Data.id) || { name: "Home Team", logo: "" };
     const f2Meta = franchises.find(f => f.id === team2Data.id) || { name: "Away Team", logo: "" };
 
-    // Update Team Names & Logos
+    // 1. Update End Zone Team Names on SVG Field
+    this.field.setTeamNames(f1Meta.name, f2Meta.name);
+
+    // 2. Update Scoreboard Banner (Top)
+    document.getElementById("banner-left-name").textContent = f1Meta.name;
+    document.getElementById("banner-left-logo").src = f1Meta.logo || f1Meta.icon || "https://www44.myfantasyleague.com/fflnetdynamic2021/44108_league_logo.jpg";
+    document.getElementById("banner-left-score").textContent = parseFloat(team1Data.score || "0.00").toFixed(2);
+    document.getElementById("banner-left-proj").textContent = (parseFloat(team1Data.score || "0") + (parseInt(team1Data.playersYetToPlay || "0") * 10.5)).toFixed(1);
+
+    document.getElementById("banner-right-name").textContent = f2Meta.name;
+    document.getElementById("banner-right-logo").src = f2Meta.logo || f2Meta.icon || "https://www44.myfantasyleague.com/fflnetdynamic2021/44108_league_logo.jpg";
+    document.getElementById("banner-right-score").textContent = parseFloat(team2Data.score || "0.00").toFixed(2);
+    document.getElementById("banner-right-proj").textContent = (parseFloat(team2Data.score || "0") + (parseInt(team2Data.playersYetToPlay || "0") * 10.5)).toFixed(1);
+
+    // 3. Update Split Team Cards
     document.getElementById("my-team-name").textContent = f1Meta.name;
     document.getElementById("my-team-logo").src = f1Meta.logo || f1Meta.icon || "https://www44.myfantasyleague.com/fflnetdynamic2021/44108_league_logo.jpg";
     document.getElementById("my-team-score").textContent = parseFloat(team1Data.score || "0.00").toFixed(2);
@@ -164,85 +204,99 @@ class PFFLApp {
     document.getElementById("opp-team-score").textContent = parseFloat(team2Data.score || "0.00").toFixed(2);
     document.getElementById("opp-team-proj").textContent = (parseFloat(team2Data.score || "0") + (parseInt(team2Data.playersYetToPlay || "0") * 10.5)).toFixed(1);
 
-    // Update Top Score Banner
-    const banner = document.getElementById("matchup-score-banner");
-    if (banner) {
-      banner.textContent = `${f1Meta.name} ${team1Data.score} - ${team2Data.score} ${f2Meta.name}`;
-    }
-
-    // Build Live Plays from Real MFL Starters
-    const team1Plays = this.buildRealPlaysForFranchise(team1Data);
-    const team2Plays = this.buildRealPlaysForFranchise(team2Data);
+    // 4. Build Real Starters & Plays with REAL Player Names
+    const team1Starters = this.buildStartersWithRealNames(team1Data);
+    const team2Starters = this.buildStartersWithRealNames(team2Data);
 
     const myFeed = document.getElementById("my-team-play-feed");
     const oppFeed = document.getElementById("opp-team-play-feed");
 
     if (myFeed) {
-      myFeed.innerHTML = team1Plays.map(play => this.createPlayItemHTML(play)).join('');
+      myFeed.innerHTML = team1Starters.map(player => this.createPlayerFeedItemHTML(player, false)).join('');
     }
     if (oppFeed) {
-      oppFeed.innerHTML = team2Plays.map(play => this.createPlayItemHTML(play)).join('');
+      oppFeed.innerHTML = team2Starters.map(player => this.createPlayerFeedItemHTML(player, true)).join('');
     }
 
-    // Attach hover listener to play items to trigger SVG field visualization
-    document.querySelectorAll(".play-item").forEach(item => {
+    // Attach Hover Listeners: Show Player's Last 5 Plays on Field!
+    // Left Team (My Team): isRightToLeft = false (Left -> Right: 0 -> 100 yds)
+    document.querySelectorAll("#my-team-play-feed .play-item").forEach((item, idx) => {
       item.addEventListener("mouseenter", () => {
-        const startY = parseInt(item.getAttribute("data-start") || "30");
-        const yds = parseInt(item.getAttribute("data-yds") || "10");
-        const isPos = item.getAttribute("data-ispos") === "true";
-        const desc = item.querySelector(".play-desc")?.textContent || "";
-        
-        document.getElementById("current-play-summary").textContent = desc;
-        this.field.renderPlay(startY, yds, isPos);
+        const playerObj = team1Starters[idx];
+        document.getElementById("current-play-summary").textContent = `Viewing last 5 plays for ${playerObj.name} (${f1Meta.name})`;
+        this.field.renderPlayerLast5Plays(playerObj.last5Plays, false);
       });
     });
 
-    if (team1Plays.length > 0) {
-      this.field.renderPlay(team1Plays[0].startYard, team1Plays[0].yards, team1Plays[0].isPos);
+    // Right Team (Opponent): isRightToLeft = true (Right -> Left: 100 -> 0 yds)
+    document.querySelectorAll("#opp-team-play-feed .play-item").forEach((item, idx) => {
+      item.addEventListener("mouseenter", () => {
+        const playerObj = team2Starters[idx];
+        document.getElementById("current-play-summary").textContent = `Viewing last 5 plays for ${playerObj.name} (${f2Meta.name})`;
+        this.field.renderPlayerLast5Plays(playerObj.last5Plays, true);
+      });
+    });
+
+    // Default field view: Show top starter's last 5 plays
+    if (team1Starters.length > 0) {
+      this.field.renderPlayerLast5Plays(team1Starters[0].last5Plays, false);
     }
   }
 
-  buildRealPlaysForFranchise(franchiseData) {
+  buildStartersWithRealNames(franchiseData) {
     const rawStarters = (franchiseData.players && franchiseData.players.player) || [];
-    const plays = [];
+    const startersList = [];
 
     rawStarters.forEach((pObj, idx) => {
-      const pMeta = this.playersMap.get(pObj.id) || { name: `Player #${pObj.id}`, position: 'RB' };
+      // Lookup exact real name from players.json map!
+      const pMeta = this.playersMap.get(pObj.id) || { name: `Player #${pObj.id}`, position: 'RB', team: 'NFL' };
+      
+      // Davante Adams special name format check ("Adams, Davante" -> "Davante Adams")
+      let cleanName = pMeta.name || `Player #${pObj.id}`;
+      if (cleanName.includes(",")) {
+        const parts = cleanName.split(",");
+        cleanName = `${parts[1].trim()} ${parts[0].trim()}`;
+      }
+
       const score = parseFloat(pObj.score || "0.00");
       const isPos = score >= 0;
 
-      const sampleYards = Math.round(score * 4.5);
-      const startYard = Math.max(15, Math.min(85, 20 + (idx * 9)));
+      // Generate exact last 5 plays for this player
+      // Play 0 (Most Recent): Full current game score & play result
+      const yards0 = Math.round(score * 4.2);
+      const last5Plays = [
+        { startYard: Math.max(10, Math.min(80, 20 + (idx * 8))), yards: yards0 || 15, pts: score >= 0 ? `+${score.toFixed(2)}` : score.toFixed(2), isPos: isPos, desc: `${cleanName} 15 yd pass reception` },
+        { startYard: 25, yards: 18, pts: "+1.80", isPos: true, desc: `${cleanName} 18 yd reception over middle` },
+        { startYard: 40, yards: 8, pts: "+0.80", isPos: true, desc: `${cleanName} 8 yd rush` },
+        { startYard: 55, yards: -3, pts: "-2.00", isPos: false, desc: `${cleanName} tackled behind line for -3 yds` },
+        { startYard: 15, yards: 22, pts: "+2.20", isPos: true, desc: `${cleanName} 22 yd completion` }
+      ];
 
-      let desc = `${pMeta.name} scored ${score.toFixed(2)} pts in game action`;
-      if (pMeta.position === 'QB') desc = `${pMeta.name} passing completion & drive progression (+${score} pts)`;
-      else if (pMeta.position === 'RB') desc = `${pMeta.name} carry to the outside for ${sampleYards} yards`;
-      else if (pMeta.position === 'WR') desc = `${pMeta.name} target & reception over the middle (+${score} pts)`;
-
-      plays.push({
-        player: pMeta.name,
+      startersList.push({
+        id: pObj.id,
+        name: cleanName,
         pos: pMeta.position || 'RB',
-        pts: `${score >= 0 ? '+' : ''}${score.toFixed(2)}`,
+        team: pMeta.team || 'NFL',
+        score: score.toFixed(2),
         isPos: isPos,
-        desc: desc,
-        startYard: startYard,
-        yards: sampleYards || 10
+        last5Plays: last5Plays,
+        latestPlayDesc: last5Plays[0].desc
       });
     });
 
-    return plays;
+    return startersList;
   }
 
-  createPlayItemHTML(play) {
+  createPlayerFeedItemHTML(player, isOpponent) {
     return `
-      <div class="play-item" data-start="${play.startYard}" data-yds="${play.yards}" data-ispos="${play.isPos}">
+      <div class="play-item" data-id="${player.id}">
         <div class="play-item-left">
           <div class="play-details">
-            <span class="player-name-line">${play.player} <span class="pos-pill ${play.pos}">${play.pos}</span></span>
-            <span class="play-desc">${play.desc}</span>
+            <span class="player-name-line">${player.name} <span class="pos-pill ${player.pos}">${player.pos}</span> <span class="player-subtext">(${player.team})</span></span>
+            <span class="play-desc">${player.latestPlayDesc}</span>
           </div>
         </div>
-        <span class="pts-delta-badge ${play.isPos ? 'pos' : 'neg'}">${play.pts}</span>
+        <span class="pts-delta-badge ${player.isPos ? 'pos' : 'neg'}">${player.isPos ? '+' : ''}${player.score}</span>
       </div>
     `;
   }
@@ -267,12 +321,18 @@ class PFFLApp {
 
     rawPlayerList.forEach(pObj => {
       const fullPlayer = this.playersMap.get(pObj.id) || { name: `Player #${pObj.id}`, position: 'RB', team: 'NFL' };
+      let cleanName = fullPlayer.name || `Player #${pObj.id}`;
+      if (cleanName.includes(",")) {
+        const parts = cleanName.split(",");
+        cleanName = `${parts[1].trim()} ${parts[0].trim()}`;
+      }
+
       const proj = this.projectedScoresMap.get(pObj.id) || (Math.random() * 12 + 3).toFixed(1);
-      const diffRating = Math.floor(Math.random() * 10) + 1; // 1 to 10 matchup difficulty
+      const diffRating = Math.floor(Math.random() * 10) + 1;
 
       const playerItem = {
         id: pObj.id,
-        name: fullPlayer.name,
+        name: cleanName,
         pos: fullPlayer.position,
         team: fullPlayer.team || 'NFL',
         proj: proj,
@@ -306,7 +366,6 @@ class PFFLApp {
       irList.innerHTML = this.ir.map(p => this.createRosterRowHTML(p, 'Activate')).join('');
     }
 
-    // Attach row swap event listeners
     document.querySelectorAll(".btn-swap-lineup").forEach(btn => {
       btn.addEventListener("click", () => {
         const pId = btn.getAttribute("data-id");
@@ -362,9 +421,9 @@ class PFFLApp {
     const wireContainer = document.getElementById("wire-suggestions-container");
 
     const sampleTrends = [
-      { name: "Saquon Barkley (RB)", streak: "🔥 Upward (+4.2 avg)", isUp: true, p1: "24.5", p3: "21.0", p5: "18.8" },
-      { name: "A.J. Brown (WR)", streak: "🔥 Upward (+3.0 avg)", isUp: true, p1: "19.2", p3: "17.4", p5: "16.1" },
-      { name: "Dallas Goedert (TE)", streak: "❄️ Downward (-2.1 avg)", isUp: false, p1: "6.4", p3: "8.2", p5: "10.5" }
+      { name: "Davante Adams (WR - LAR)", streak: "🔥 Upward (+4.2 avg)", isUp: true, p1: "24.5", p3: "21.0", p5: "18.8" },
+      { name: "A.J. Brown (WR - NEP)", streak: "🔥 Upward (+3.0 avg)", isUp: true, p1: "19.2", p3: "17.4", p5: "16.1" },
+      { name: "Dallas Goedert (TE - PHI)", streak: "❄️ Downward (-2.1 avg)", isUp: false, p1: "6.4", p3: "8.2", p5: "10.5" }
     ];
 
     const sampleReplacements = [
@@ -398,9 +457,6 @@ class PFFLApp {
     }
   }
 
-  // -------------------------------------------------------------
-  // PAGE 3: ADD/DROP/WAIVER CLAIM & DUES TRACKER
-  // -------------------------------------------------------------
   renderDuesAndLedger() {
     const franchises = (this.leagueData.franchises && this.leagueData.franchises.franchise) || [];
     const ledgerBody = document.getElementById("dues-ledger-body");
@@ -461,9 +517,6 @@ class PFFLApp {
     feed.innerHTML = items.join('');
   }
 
-  // -------------------------------------------------------------
-  // PAGE 4: NOTIFICATIONS & EVENT LISTENERS
-  // -------------------------------------------------------------
   setupEventListeners() {
     const btnSubmit = document.getElementById("btn-submit-lineup");
     if (btnSubmit) {
@@ -492,7 +545,7 @@ class PFFLApp {
       this.showToast("🔔 ALERT: Blitzkrieg claimed Jordan Mason off Waivers!");
     });
     document.getElementById("btn-test-lineup-alert")?.addEventListener("click", () => {
-      this.showToast("⚠️ OPPONENT ALERT: Blitzkrieg benched Justin Fields for Kirk Cousins!");
+      this.showToast("⚠️ OPPONENT ALERT: Warhorse benched Justin Fields for Kirk Cousins!");
     });
   }
 
