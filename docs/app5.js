@@ -187,33 +187,41 @@ class PFFLApp {
                     
                     let pts = 0;
                     let txt = play.text.toLowerCase();
+                    let pos = pObj.pos || (pObj.position ? pObj.position.toUpperCase() : 'RB');
+                    if (pos === 'DEF' || pos === 'DST') {
+                       // DST scoring is too complex to parse from play text, skip parsing
+                       continue; 
+                    }
                     
-                    if (txt.includes('field goal is good') || txt.includes('field goal good')) {
-                        let match = txt.match(/(\d+) yard field goal/);
-                        let dist = match ? parseInt(match[1]) : 30;
-                        if (dist >= 50) pts = 5;
-                        else if (dist >= 40) pts = 4;
-                        else pts = 3;
-                    } else if (txt.includes('extra point is good')) {
-                        pts = 1;
-                    } else if (txt.includes('kicks ') && !txt.includes('good') && !txt.includes('field goal')) {
-                        // Kickoff, skip
-                        continue;
+                    if (pos === 'K' || pos === 'PK') {
+                        if (txt.includes('field goal is good') || txt.includes('field goal good')) {
+                            let match = txt.match(/(\d+) yard field goal/);
+                            let dist = match ? parseInt(match[1]) : 30;
+                            if (dist >= 50) pts = 5;
+                            else if (dist >= 40) pts = 4;
+                            else pts = 3;
+                        } else if (txt.includes('extra point is good') && txt.includes(espnName.toLowerCase())) {
+                            pts = 1;
+                        }
                     } else {
                         // Skill player
+                        if (txt.includes('kicks ') && !txt.includes('good') && !txt.includes('field goal')) {
+                            continue; // Skip kickoffs for skill players
+                        }
+                        
                         let yards = play.statYardage || 0;
                         let isPasser = txt.includes(espnName.toLowerCase() + ' pass');
                         let isReceiver = txt.includes('to ' + espnName.toLowerCase());
+                        let isRusher = txt.includes(espnName.toLowerCase()) && !isPasser && !isReceiver && !txt.includes('pass to');
                         
                         if (isPasser) {
                             pts += yards * 0.04;
                             if (isTD) pts += 4;
-                        } else {
+                        } else if (isReceiver || isRusher || txt.includes('pass ')) {
                             pts += yards * 0.1;
                             if (isTD) pts += 6;
                             // Check if it's a reception (PPR = 1 pt)
-                            // Either they are explicitly the receiver, or it's a pass play and they are the one getting yards
-                            if (isReceiver || (txt.includes('pass ') && !isPasser)) {
+                            if (isReceiver || (txt.includes('pass ') && !isPasser && !isRusher)) {
                                 pts += 1;
                             }
                         }
