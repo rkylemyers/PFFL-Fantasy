@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260913_2">
+  <link rel="stylesheet" href="styles.css?v=20260913_3">
 </head>
 <body class="dark-theme">
   <!-- Top Global Navigation Bar -->
@@ -44,7 +44,7 @@
       <span class="live-status-pill" id="live-status-pill">
         <span class="dot"></span> LIVE WEEK 1
       </span>
-      <span class="last-sync-time" id="last-sync-timestamp">LAST SYNC: 12:46 PM</span>
+      <span class="last-sync-time" id="last-sync-timestamp">LAST SYNC: --:-- --</span>
       <button id="btn-sync-data" class="btn-icon" title="Refresh Live Data">🔄</button>
     </div>
   </header>
@@ -55,7 +55,7 @@
     <!-- PAGE 1: LIVE SCORING & MATCHUP FIELD -->
     <section id="tab-live" class="tab-page active">
 
-      <!-- Overall Matchup Scoreboard Banner (Replaces top dropdown) -->
+      <!-- Overall Matchup Scoreboard Banner -->
       <div class="matchup-banner-header" id="overall-scoreboard-banner">
         <div class="banner-team banner-left">
           <img id="banner-left-logo" src="" alt="Left Team" class="banner-team-logo">
@@ -87,8 +87,13 @@
       <div class="live-field-card">
         <div class="field-header">
           <div class="game-meta">
-            <span class="live-tag">LIVE STACKED VIEW</span>
-            <span id="current-play-summary">Hover any player in the feed to visualize their last 5 plays on the field</span>
+            <span class="live-tag">LIVE FIELD CARD</span>
+            <span id="current-play-summary">Hover any starter below to map their plays on the field</span>
+          </div>
+          <!-- View Toggle Controls (Roster Totals vs Running Scoring Stream) -->
+          <div class="view-toggle-group">
+            <button class="toggle-btn active" id="btn-view-roster" title="Show Lineup Totals View">📊 Lineup Totals</button>
+            <button class="toggle-btn" id="btn-view-log" title="Show Running Scoring Stream">📜 Running Play Stream</button>
           </div>
         </div>
 
@@ -102,10 +107,10 @@
 
       <!-- Live Fantasy Head-to-Head Split Panel -->
       <div class="head-to-head-grid">
-        <!-- My Team Panel (Left) -->
+        <!-- Left Team Panel -->
         <div class="team-panel my-team-panel">
           <div class="team-header">
-            <img id="my-team-logo" src="" alt="My Team" class="franchise-logo">
+            <img id="my-team-logo" src="" alt="Left Team" class="franchise-logo">
             <div class="team-info">
               <h2 id="my-team-name">Mentalcow</h2>
               <div class="score-display">
@@ -114,16 +119,16 @@
               </div>
             </div>
           </div>
-          <!-- Player Play-by-Play & Point Deltas Feed -->
+          <!-- Dynamic Content Feed (Toggled between Lineup Totals & Running Stream) -->
           <div class="play-by-play-feed" id="my-team-play-feed">
-            <!-- Dynamic player play list -->
+            <!-- Rendered dynamically -->
           </div>
         </div>
 
-        <!-- Opponent Team Panel (Right) -->
+        <!-- Right Team Panel -->
         <div class="team-panel opp-team-panel">
           <div class="team-header">
-            <img id="opp-team-logo" src="" alt="Opponent Team" class="franchise-logo">
+            <img id="opp-team-logo" src="" alt="Right Team" class="franchise-logo">
             <div class="team-info">
               <h2 id="opp-team-name">Warhorse</h2>
               <div class="score-display">
@@ -132,9 +137,9 @@
               </div>
             </div>
           </div>
-          <!-- Opponent Play-by-Play Feed -->
+          <!-- Dynamic Content Feed -->
           <div class="play-by-play-feed" id="opp-team-play-feed">
-            <!-- Dynamic opponent play list -->
+            <!-- Rendered dynamically -->
           </div>
         </div>
       </div>
@@ -164,7 +169,7 @@
 
       <!-- Active Lineup Grid -->
       <div class="roster-section">
-        <h3 class="section-title">Starting Lineup (9 Starters)</h3>
+        <h3 class="section-title">Starting Lineup (9 Starters: QB, RB, RB, WR, WR, FLEX, TE, K, DST)</h3>
         <div class="lineup-table-container">
           <table class="roster-table" id="starters-table">
             <thead>
@@ -233,7 +238,6 @@
 
       <!-- Bottom Section: Player Trends & Wire Replacements -->
       <div class="roster-bottom-analysis">
-        <!-- Left: Performance Trend Analyzer -->
         <div class="analysis-card trend-card">
           <div class="card-header">
             <h3>📈 Player Performance Trends</h3>
@@ -244,7 +248,6 @@
           </div>
         </div>
 
-        <!-- Right: FantasyPros Smart Replacement Wire Suggestions -->
         <div class="analysis-card replacement-card">
           <div class="card-header">
             <h3>⚡ Free Agent / Waiver Wire Replacements</h3>
@@ -277,7 +280,6 @@
         </div>
       </div>
 
-      <!-- Transaction Log & Team Breakdown -->
       <div class="dues-content-split">
         <div class="action-card">
           <div class="card-header">
@@ -402,7 +404,7 @@
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Scripts -->
-  <script src="field.js?v=20260913_2"></script>
-  <script src="app.js?v=20260913_2"></script>
+  <script src="field.js?v=20260913_3"></script>
+  <script src="app.js?v=20260913_3"></script>
 </body>
 </html>

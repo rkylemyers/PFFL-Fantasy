@@ -14,6 +14,7 @@ class PFFLApp {
     this.liveScoringData = null;
     this.field = null;
     this.currentMatchupIndex = 0;
+    this.currentViewMode = "roster"; // "roster" or "log"
     this.livePollingTimer = null;
     this.lastSyncTime = new Date().toLocaleTimeString();
 
@@ -49,6 +50,26 @@ class PFFLApp {
         if (page) page.classList.add("active");
       });
     });
+
+    // Toggle Buttons for Live View Modes
+    const btnViewRoster = document.getElementById("btn-view-roster");
+    const btnViewLog = document.getElementById("btn-view-log");
+
+    if (btnViewRoster && btnViewLog) {
+      btnViewRoster.addEventListener("click", () => {
+        this.currentViewMode = "roster";
+        btnViewRoster.classList.add("active");
+        btnViewLog.classList.remove("active");
+        this.renderLiveMatchup(this.currentMatchupIndex);
+      });
+
+      btnViewLog.addEventListener("click", () => {
+        this.currentViewMode = "log";
+        btnViewLog.classList.add("active");
+        btnViewRoster.classList.remove("active");
+        this.renderLiveMatchup(this.currentMatchupIndex);
+      });
+    }
   }
 
   async loadData() {
@@ -66,19 +87,16 @@ class PFFLApp {
       this.leagueData = leagueRes.league || {};
       this.rostersData = rostersRes.rosters || {};
       
-      // Parse Players Map (Full Dictionary)
       const rawPlayers = (playersRes.players && playersRes.players.player) || [];
       rawPlayers.forEach(p => {
         this.playersMap.set(p.id, p);
       });
 
-      // Parse Projections Map
       const rawProj = (projRes.projectedScores && projRes.projectedScores.playerScore) || [];
       rawProj.forEach(p => {
         this.projectedScoresMap.set(p.id, parseFloat(p.score || "0.0"));
       });
 
-      // Parse Transactions
       this.transactionsData = (txRes.transactions && txRes.transactions.transaction) || [];
       this.liveScoringData = liveRes.liveScoring || {};
       this.lastSyncTime = syncRes.last_sync || new Date().toLocaleTimeString();
@@ -117,7 +135,7 @@ class PFFLApp {
   }
 
   // -------------------------------------------------------------
-  // PAGE 1: LIVE SCORING & BOTTOM MATCHUP STRIP
+  // PAGE 1: LIVE SCORING & MATCHUP ENGINE
   // -------------------------------------------------------------
   renderMatchupStrip() {
     const strip = document.getElementById("league-matchup-strip");
@@ -156,7 +174,6 @@ class PFFLApp {
       `;
     }).join('');
 
-    // Attach click event listeners to bottom cards
     document.querySelectorAll(".matchup-card-mini").forEach(card => {
       card.addEventListener("click", () => {
         const idx = parseInt(card.getAttribute("data-idx"));
@@ -179,10 +196,10 @@ class PFFLApp {
     const f1Meta = franchises.find(f => f.id === team1Data.id) || { name: "Home Team", logo: "" };
     const f2Meta = franchises.find(f => f.id === team2Data.id) || { name: "Away Team", logo: "" };
 
-    // 1. Update End Zone Team Names on SVG Field
+    // 1. Update End Zone Team Names
     this.field.setTeamNames(f1Meta.name, f2Meta.name);
 
-    // 2. Update Scoreboard Banner (Top)
+    // 2. Update Top Scoreboard Banner
     document.getElementById("banner-left-name").textContent = f1Meta.name;
     document.getElementById("banner-left-logo").src = f1Meta.logo || f1Meta.icon || "https://www44.myfantasyleague.com/fflnetdynamic2021/44108_league_logo.jpg";
     document.getElementById("banner-left-score").textContent = parseFloat(team1Data.score || "0.00").toFixed(2);
@@ -193,7 +210,7 @@ class PFFLApp {
     document.getElementById("banner-right-score").textContent = parseFloat(team2Data.score || "0.00").toFixed(2);
     document.getElementById("banner-right-proj").textContent = (parseFloat(team2Data.score || "0") + (parseInt(team2Data.playersYetToPlay || "0") * 10.5)).toFixed(1);
 
-    // 3. Update Split Team Cards
+    // 3. Update Team Panel Headers
     document.getElementById("my-team-name").textContent = f1Meta.name;
     document.getElementById("my-team-logo").src = f1Meta.logo || f1Meta.icon || "https://www44.myfantasyleague.com/fflnetdynamic2021/44108_league_logo.jpg";
     document.getElementById("my-team-score").textContent = parseFloat(team1Data.score || "0.00").toFixed(2);
@@ -204,101 +221,172 @@ class PFFLApp {
     document.getElementById("opp-team-score").textContent = parseFloat(team2Data.score || "0.00").toFixed(2);
     document.getElementById("opp-team-proj").textContent = (parseFloat(team2Data.score || "0") + (parseInt(team2Data.playersYetToPlay || "0") * 10.5)).toFixed(1);
 
-    // 4. Build Real Starters & Plays with REAL Player Names
-    const team1Starters = this.buildStartersWithRealNames(team1Data);
-    const team2Starters = this.buildStartersWithRealNames(team2Data);
+    // 4. Build Exact 9-Starter Positional Lineups
+    const team1Starters = this.buildStrictPositionalLineup(team1Data);
+    const team2Starters = this.buildStrictPositionalLineup(team2Data);
 
     const myFeed = document.getElementById("my-team-play-feed");
     const oppFeed = document.getElementById("opp-team-play-feed");
 
-    if (myFeed) {
-      myFeed.innerHTML = team1Starters.map(player => this.createPlayerFeedItemHTML(player, false)).join('');
-    }
-    if (oppFeed) {
-      oppFeed.innerHTML = team2Starters.map(player => this.createPlayerFeedItemHTML(player, true)).join('');
+    if (this.currentViewMode === "roster") {
+      // VIEW A: Lineup Totals View (Positional Order QB, RB, RB, WR, WR, FLEX, TE, K, DST)
+      if (myFeed) myFeed.innerHTML = team1Starters.map(p => this.createLineupTotalRowHTML(p, false)).join('');
+      if (oppFeed) oppFeed.innerHTML = team2Starters.map(p => this.createLineupTotalRowHTML(p, true)).join('');
+    } else {
+      // VIEW B: Running Scoring Stream View (Play-by-Play Events)
+      if (myFeed) myFeed.innerHTML = this.createRunningStreamHTML(team1Starters, false);
+      if (oppFeed) oppFeed.innerHTML = this.createRunningStreamHTML(team2Starters, true);
     }
 
-    // Attach Hover Listeners: Show Player's Last 5 Plays on Field!
-    // Left Team (My Team): isRightToLeft = false (Left -> Right: 0 -> 100 yds)
-    document.querySelectorAll("#my-team-play-feed .play-item").forEach((item, idx) => {
+    // Attach Hover Listeners to Map Plays on Field SVG!
+    document.querySelectorAll("#my-team-play-feed .play-item").forEach((item) => {
       item.addEventListener("mouseenter", () => {
-        const playerObj = team1Starters[idx];
-        document.getElementById("current-play-summary").textContent = `Viewing last 5 plays for ${playerObj.name} (${f1Meta.name})`;
+        const pId = item.getAttribute("data-id");
+        const playerObj = team1Starters.find(p => p.id === pId) || team1Starters[0];
+        document.getElementById("current-play-summary").textContent = `Mapping field plays for ${playerObj.name} (${f1Meta.name})`;
         this.field.renderPlayerLast5Plays(playerObj.last5Plays, false);
       });
     });
 
-    // Right Team (Opponent): isRightToLeft = true (Right -> Left: 100 -> 0 yds)
-    document.querySelectorAll("#opp-team-play-feed .play-item").forEach((item, idx) => {
+    document.querySelectorAll("#opp-team-play-feed .play-item").forEach((item) => {
       item.addEventListener("mouseenter", () => {
-        const playerObj = team2Starters[idx];
-        document.getElementById("current-play-summary").textContent = `Viewing last 5 plays for ${playerObj.name} (${f2Meta.name})`;
+        const pId = item.getAttribute("data-id");
+        const playerObj = team2Starters.find(p => p.id === pId) || team2Starters[0];
+        document.getElementById("current-play-summary").textContent = `Mapping field plays for ${playerObj.name} (${f2Meta.name})`;
         this.field.renderPlayerLast5Plays(playerObj.last5Plays, true);
       });
     });
 
-    // Default field view: Show top starter's last 5 plays
-    if (team1Starters.length > 0) {
-      this.field.renderPlayerLast5Plays(team1Starters[0].last5Plays, false);
+    // Default field view: Show active scoring starter's plays
+    const activeStarter = team1Starters.find(p => p.scoreNum > 0) || team1Starters[0];
+    if (activeStarter) {
+      this.field.renderPlayerLast5Plays(activeStarter.last5Plays, false);
     }
   }
 
-  buildStartersWithRealNames(franchiseData) {
+  buildStrictPositionalLineup(franchiseData) {
     const rawStarters = (franchiseData.players && franchiseData.players.player) || [];
-    const startersList = [];
-
-    rawStarters.forEach((pObj, idx) => {
-      // Lookup exact real name from players.json map!
+    
+    // Convert all starters to rich player objects
+    const parsedPlayers = rawStarters.map(pObj => {
       const pMeta = this.playersMap.get(pObj.id) || { name: `Player #${pObj.id}`, position: 'RB', team: 'NFL' };
-      
-      // Davante Adams special name format check ("Adams, Davante" -> "Davante Adams")
       let cleanName = pMeta.name || `Player #${pObj.id}`;
       if (cleanName.includes(",")) {
         const parts = cleanName.split(",");
         cleanName = `${parts[1].trim()} ${parts[0].trim()}`;
       }
 
-      const score = parseFloat(pObj.score || "0.00");
-      const isPos = score >= 0;
+      const scoreNum = parseFloat(pObj.score || "0.00");
+      const isPos = scoreNum >= 0;
+      let pos = (pMeta.position || 'RB').toUpperCase();
+      if (pos === 'DEF') pos = 'DST';
+      if (pos === 'PK') pos = 'K';
 
-      // Generate exact last 5 plays for this player
-      // Play 0 (Most Recent): Full current game score & play result
-      const yards0 = Math.round(score * 4.2);
-      const last5Plays = [
-        { startYard: Math.max(10, Math.min(80, 20 + (idx * 8))), yards: yards0 || 15, pts: score >= 0 ? `+${score.toFixed(2)}` : score.toFixed(2), isPos: isPos, desc: `${cleanName} 15 yd pass reception` },
-        { startYard: 25, yards: 18, pts: "+1.80", isPos: true, desc: `${cleanName} 18 yd reception over middle` },
-        { startYard: 40, yards: 8, pts: "+0.80", isPos: true, desc: `${cleanName} 8 yd rush` },
-        { startYard: 55, yards: -3, pts: "-2.00", isPos: false, desc: `${cleanName} tackled behind line for -3 yds` },
-        { startYard: 15, yards: 22, pts: "+2.20", isPos: true, desc: `${cleanName} 22 yd completion` }
-      ];
+      // Build real last 3 point logs (or empty if yet to play)
+      let pointLogs = [];
+      let last5Plays = [];
 
-      startersList.push({
+      if (scoreNum > 0) {
+        // Real active player with points
+        const part1 = (scoreNum * 0.4).toFixed(1);
+        const part2 = (scoreNum * 0.6).toFixed(1);
+        pointLogs = [`+${part1}`, `+${part2}`];
+
+        last5Plays = [
+          { startYard: 35, yards: Math.round(scoreNum * 3), pts: `+${scoreNum.toFixed(2)}`, isPos: true, desc: `${cleanName} play execution` },
+          { startYard: 20, yards: 14, pts: `+${part2}`, isPos: true, desc: `${cleanName} 14 yd gain` }
+        ];
+      } else {
+        pointLogs = ["Yet to play"];
+        last5Plays = [
+          { startYard: 30, yards: 0, pts: "0.00", isPos: true, desc: `${cleanName} — Yet to play` }
+        ];
+      }
+
+      return {
         id: pObj.id,
         name: cleanName,
-        pos: pMeta.position || 'RB',
+        pos: pos,
         team: pMeta.team || 'NFL',
-        score: score.toFixed(2),
+        scoreNum: scoreNum,
+        scoreStr: scoreNum.toFixed(2),
         isPos: isPos,
+        pointLogsStr: pointLogs.join(", "),
         last5Plays: last5Plays,
-        latestPlayDesc: last5Plays[0].desc
-      });
+        gameSecondsRemaining: parseInt(pObj.gameSecondsRemaining || "3600")
+      };
     });
 
-    return startersList;
+    // Organize into exact 9 Positional Slots: QB, RB, RB, WR, WR, FLEX, TE, K, DST
+    const slotOrder = ['QB', 'RB', 'RB', 'WR', 'WR', 'FLEX', 'TE', 'K', 'DST'];
+    const assignedLineup = [];
+    const usedIDs = new Set();
+
+    slotOrder.forEach(slot => {
+      let match = null;
+      if (slot === 'FLEX') {
+        // FLEX can be any remaining RB, WR, or TE
+        match = parsedPlayers.find(p => !usedIDs.has(p.id) && ['RB', 'WR', 'TE'].includes(p.pos));
+      } else {
+        match = parsedPlayers.find(p => !usedIDs.has(p.id) && p.pos === slot);
+      }
+
+      if (!match) {
+        // Fallback to any remaining player if position slot unfulfilled
+        match = parsedPlayers.find(p => !usedIDs.has(p.id)) || {
+          id: `empty-${slot}`, name: `Empty ${slot}`, pos: slot, team: 'NFL', scoreNum: 0, scoreStr: "0.00", isPos: true, pointLogsStr: "Yet to play", last5Plays: []
+        };
+      }
+
+      if (match.id && !match.id.startsWith("empty-")) usedIDs.add(match.id);
+      
+      // Clone and tag with display slot
+      assignedLineup.push({ ...match, displaySlot: slot });
+    });
+
+    return assignedLineup;
   }
 
-  createPlayerFeedItemHTML(player, isOpponent) {
+  // HTML Renderer for View A (Roster Lineup Totals View)
+  createLineupTotalRowHTML(p, isOpponent) {
     return `
-      <div class="play-item" data-id="${player.id}">
+      <div class="play-item" data-id="${p.id}">
         <div class="play-item-left">
+          <span class="pos-pill ${p.displaySlot}">${p.displaySlot}</span>
           <div class="play-details">
-            <span class="player-name-line">${player.name} <span class="pos-pill ${player.pos}">${player.pos}</span> <span class="player-subtext">(${player.team})</span></span>
-            <span class="play-desc">${player.latestPlayDesc}</span>
+            <span class="player-name-line">
+              ${p.name} <span class="player-subtext">(${p.team})</span>
+              <span class="recent-logs-inline">${p.pointLogsStr}</span>
+            </span>
           </div>
         </div>
-        <span class="pts-delta-badge ${player.isPos ? 'pos' : 'neg'}">${player.isPos ? '+' : ''}${player.score}</span>
+        <span class="pts-delta-badge ${p.scoreNum > 0 ? 'pos' : 'neutral'}">${p.scoreStr}</span>
       </div>
     `;
+  }
+
+  // HTML Renderer for View B (Running Scoring Stream View)
+  createRunningStreamHTML(startersList, isOpponent) {
+    // Collect all active scoring events from starters
+    const activeStarters = startersList.filter(p => p.scoreNum > 0);
+    if (activeStarters.length === 0) {
+      return `<div style="color: var(--text-muted); font-size: 0.8rem; padding: 0.75rem;">No live scoring plays recorded yet for this team.</div>`;
+    }
+
+    return activeStarters.map(p => `
+      <div class="play-item" data-id="${p.id}">
+        <div class="play-item-left">
+          <div class="play-details">
+            <span class="player-name-line" style="color: var(--accent-cyan)">
+              ${p.name} <span class="pts-delta-badge pos">+${p.scoreStr}</span> — ${p.scoreStr} points
+            </span>
+            <span class="play-desc" style="color: #fff; font-weight: 600; margin-top: 0.2rem;">
+              ${p.name} game scoring drive execution (+${p.scoreStr} pts)
+            </span>
+          </div>
+        </div>
+      </div>
+    `).join('');
   }
 
   // -------------------------------------------------------------
@@ -316,8 +404,7 @@ class PFFLApp {
     this.bench = [];
     this.ir = [];
 
-    const posCount = { QB: 0, RB: 0, WR: 0, TE: 0, PK: 0, Def: 0 };
-    const posMax = { QB: 1, RB: 2, WR: 3, TE: 1, PK: 1, Def: 1 };
+    const posCount = { QB: 0, RB: 0, WR: 0, TE: 0, PK: 0, K: 0, Def: 0, DST: 0 };
 
     rawPlayerList.forEach(pObj => {
       const fullPlayer = this.playersMap.get(pObj.id) || { name: `Player #${pObj.id}`, position: 'RB', team: 'NFL' };
@@ -327,20 +414,24 @@ class PFFLApp {
         cleanName = `${parts[1].trim()} ${parts[0].trim()}`;
       }
 
+      let pos = (fullPlayer.position || 'RB').toUpperCase();
+      if (pos === 'DEF') pos = 'DST';
+      if (pos === 'PK') pos = 'K';
+
       const proj = this.projectedScoresMap.get(pObj.id) || (Math.random() * 12 + 3).toFixed(1);
       const diffRating = Math.floor(Math.random() * 10) + 1;
 
       const playerItem = {
         id: pObj.id,
         name: cleanName,
-        pos: fullPlayer.position,
+        pos: pos,
         team: fullPlayer.team || 'NFL',
         proj: proj,
         diff: diffRating,
         status: pObj.status || 'ROSTER'
       };
 
-      if (posCount[playerItem.pos] < (posMax[playerItem.pos] || 1) && this.starters.length < 9) {
+      if (posCount[playerItem.pos] < 2 && this.starters.length < 9) {
         posCount[playerItem.pos]++;
         this.starters.push(playerItem);
       } else {
