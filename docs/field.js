@@ -167,7 +167,200 @@ class FootballField {
     }
   }
 
-  // Render Last 5 Plays Stacked View
+  renderCombinedPlays(plays) {
+    if (!this.playLayer) return;
+    this.playLayer.innerHTML = ''; // Clear previous
+
+    if (!plays || plays.length === 0) return;
+    this.initTooltip();
+
+    const playList = plays.slice(0, 6);
+    const baseY = 460;
+    const ySpacing = 75;
+
+    playList.forEach((play, index) => {
+      const shrinkFactor = 1 - (index * 0.1); // Scale down older plays
+      const playY = baseY - (index * ySpacing);
+      const isRightToLeft = play.isOpponent;
+      
+      const isTD = play.isTD;
+      const isBigPlay = play.isBigPlay;
+      const isFG = play.isFG;
+      const isPass = play.isPass;
+      const isRun = play.isRun;
+
+      // Color scheme based on team (Left = Green, Right = Red)
+      let strokeColor = isRightToLeft ? '#ff5252' : '#00e676';
+      let fillColor = isRightToLeft ? 'rgba(255, 82, 82, 0.25)' : 'rgba(0, 230, 118, 0.25)';
+      
+      if (isFG) {
+          strokeColor = '#ff5252'; // Red for 3 points
+          fillColor = 'rgba(255, 82, 82, 0.25)';
+      }
+
+      let startYard = play.startYard !== undefined ? play.startYard : 50;
+      let yardsGained = play.yards || 0;
+
+      // Mapping yards to SVG Coordinates
+      let normalizedStart = isRightToLeft ? (100 - startYard) : startYard;
+      let normalizedEnd = normalizedStart + yardsGained;
+      if (normalizedEnd > 100) normalizedEnd = 100;
+      if (normalizedEnd < 0) normalizedEnd = 0;
+
+      let startX = 10 * this.yardWidth + (normalizedStart * this.yardWidth);
+      let endX = 10 * this.yardWidth + (normalizedEnd * this.yardWidth);
+
+      const isReversePlay = yardsGained < 0;
+
+      // Create group container for the play
+      const group = this.createSVGElement('g', {
+        'class': 'play-stack-layer',
+        'opacity': shrinkFactor
+      });
+
+      // 1. Hover Hitbox
+      const hitboxWidth = Math.max(Math.abs(endX - startX), 100);
+      const hitboxX = Math.min(startX, endX);
+      const hitbox = this.createSVGElement('rect', {
+        x: hitboxX, y: playY - 30, width: hitboxWidth, height: 60,
+        fill: 'transparent', cursor: 'pointer'
+      });
+      
+      // Def marker for arrowheads
+      const defs = this.createSVGElement('defs', {});
+      const arrowId = `arrowhead-${index}`;
+      const marker = this.createSVGElement('marker', {
+          id: arrowId,
+          markerWidth: 10, markerHeight: 10,
+          refX: 9, refY: 3,
+          orient: 'auto',
+          markerUnits: 'strokeWidth'
+      });
+      const pathMarker = this.createSVGElement('path', {
+          d: 'M0,0 L0,6 L9,3 z',
+          fill: strokeColor
+      });
+      marker.appendChild(pathMarker);
+      defs.appendChild(marker);
+      group.appendChild(defs);
+
+      // 2. Play Trajectory Line
+      if (isFG) {
+          // Field Goal Arc
+          const fgEndX = isRightToLeft ? 0 : 120 * this.yardWidth;
+          const arcY = playY - 60;
+          const fgPath = this.createSVGElement('path', {
+             d: `M ${startX} ${playY} Q ${(startX + fgEndX)/2} ${arcY} ${fgEndX} ${playY}`,
+             stroke: strokeColor,
+             'stroke-width': 4,
+             'stroke-dasharray': '8,4',
+             fill: 'none',
+             'marker-end': `url(#${arrowId})`
+          });
+          group.appendChild(fgPath);
+      } else if (isPass) {
+          // Arching pass
+          const arcY = playY - 30; // arch peak
+          const passPath = this.createSVGElement('path', {
+             d: `M ${startX} ${playY} Q ${(startX + endX)/2} ${arcY} ${endX} ${playY}`,
+             stroke: strokeColor,
+             'stroke-width': 4,
+             fill: 'none',
+             'marker-end': `url(#${arrowId})`
+          });
+          group.appendChild(passPath);
+      } else {
+          // Straight run (or generic play)
+          const runLine = this.createSVGElement('line', {
+             x1: startX, y1: playY, x2: endX, y2: playY,
+             stroke: strokeColor,
+             'stroke-width': 4,
+             'marker-end': `url(#${arrowId})`
+          });
+          group.appendChild(runLine);
+      }
+
+      // 3. Start Marker (LOS)
+      const startNode = this.createSVGElement('circle', {
+        cx: startX, cy: playY, r: 6,
+        fill: '#1a1a1a', stroke: strokeColor, 'stroke-width': 2
+      });
+
+      // 4. Time Label (Left Side)
+      const timeLabel = this.createSVGElement('text', {
+        x: isRightToLeft ? startX + 15 : startX - 15,
+        y: playY + 4,
+        fill: 'rgba(255, 255, 255, 0.7)',
+        'font-family': 'JetBrains Mono',
+        'font-size': '11px',
+        'text-anchor': isRightToLeft ? 'start' : 'end'
+      });
+      timeLabel.textContent = index === 0 ? 'MOST RECENT' : `-${index}`;
+
+      // 5. Outcome Badge / Text
+      const textX = endX + (isRightToLeft ? (yardsGained < 0 ? 15 : -15) : (yardsGained < 0 ? -15 : 15));
+      const textAnchor = isRightToLeft ? (yardsGained < 0 ? 'start' : 'end') : (yardsGained < 0 ? 'end' : 'start');
+
+      const ptsLabel = this.createSVGElement('text', {
+        x: textX, y: playY - 10,
+        fill: '#ffffff',
+        'font-family': 'Inter',
+        'font-size': '13px',
+        'font-weight': '700',
+        'text-anchor': textAnchor
+      });
+      ptsLabel.textContent = `${play.playerName}: ${play.pts || ''}`;
+
+      const yardLabel = this.createSVGElement('text', {
+        x: textX, y: playY + 8,
+        fill: strokeColor,
+        'font-family': 'Inter',
+        'font-size': '11px',
+        'font-weight': '600',
+        'text-anchor': textAnchor
+      });
+      if (isFG) {
+         yardLabel.textContent = "FIELD GOAL";
+      } else {
+         yardLabel.textContent = `${yardsGained} YDS`;
+      }
+
+      // 6. Highlight Glow for Index 0
+      if (index === 0) {
+        const glow = this.createSVGElement('rect', {
+          x: Math.min(startX, endX) - 20, y: playY - 25, width: Math.abs(endX - startX) + 40, height: 50,
+          fill: `url(#glow-${isRightToLeft ? 'opp' : 'my'})`,
+          opacity: 0.5
+        });
+        group.insertBefore(glow, group.firstChild);
+      }
+
+      // Tooltip events
+      const tooltipData = {
+        playerName: play.playerName,
+        pts: play.pts,
+        desc: play.desc,
+        indexLabel: index === 0 ? 'Most Recent Play' : `Play -${index}`,
+        yards: yardsGained,
+        startYard: startYard,
+        isPos: play.pts && !play.pts.startsWith('-')
+      };
+
+      hitbox.addEventListener('mouseenter', (e) => this.showTooltip(e, tooltipData));
+      hitbox.addEventListener('mouseleave', () => this.hideTooltip());
+      hitbox.addEventListener('mousemove', (e) => this.positionTooltip(e));
+
+      group.appendChild(startNode);
+      group.appendChild(timeLabel);
+      group.appendChild(ptsLabel);
+      group.appendChild(yardLabel);
+      group.appendChild(hitbox);
+
+      this.playLayer.appendChild(group);
+    });
+  }
+
+  // OLD Render Last 5 Plays Stacked View
   // isRightToLeft: true for opponent team (moving right to left: 100 -> 0)
   renderPlayerLast5Plays(plays, isRightToLeft = false, playerMeta = null) {
     if (!this.playLayer) return;
@@ -276,7 +469,7 @@ class FootballField {
 
       // 5. Dark High-Contrast Background Pill & Extra Large Label Text
       let labelText = "";
-      let pName = playerMeta ? playerMeta.name.split(' ').slice(-1)[0].toUpperCase() : "PLAYER";
+      let pName = (playerMeta ? playerMeta.name : (play.playerName || "PLAYER")).split(' ').slice(-1)[0].toUpperCase();
       if (isTD) {
         labelText = `🚨 TD! ${pName} ${play.pts} PTS`;
       } else if (isBigPlay) {

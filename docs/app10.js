@@ -258,7 +258,10 @@ class PFFLApp {
                       timeSortWeight: pTime.getTime(),
                       startYard: play.start ? play.start.yardLine : 50,
                       yards: play.statYardage || 0,
-                      team: pObj.team
+                      team: pObj.team,
+                      isPass: txt.includes('pass '),
+                      isRun: !txt.includes('pass ') && pos !== 'K' && pos !== 'PK',
+                      isFG: pos === 'K' || pos === 'PK'
                     };
 
                     if (!pObj.last5Plays) pObj.last5Plays = [];
@@ -340,7 +343,11 @@ class PFFLApp {
                   desc: `🚨 LIVE: ${play.text} (+${fpts.toFixed(1)} pts)`,
                   team: match.team,
                   startYard: comp.situation.yardLine || 25,
-                  yards: play.statYardage || 0
+                  yards: play.statYardage || 0,
+                  isTD: isTD,
+                  isPass: play.text.toLowerCase().includes('pass '),
+                  isRun: !play.text.toLowerCase().includes('pass ') && match.position !== 'PK' && match.position !== 'K',
+                  isFG: match.position === 'PK' || match.position === 'K'
                 };
                 
                 if (!match.last5Plays) match.last5Plays = [];
@@ -802,7 +809,10 @@ class PFFLApp {
             team: p.team || play.team,
             startYard: play.startYard,
             yards: play.yards,
-            isTD: play.isTD
+            isTD: play.isTD,
+            isPass: play.isPass,
+            isRun: play.isRun,
+            isFG: play.isFG
           });
         });
       }
@@ -835,7 +845,7 @@ class PFFLApp {
         <div class="play-item-left">
           <div class="play-details">
             <span class="player-name-line" style="color: var(--accent-cyan)">
-              ${p.playerName} <span class="pts-delta-badge ${p.pts && p.pts.toString().startsWith('+') ? 'pos' : 'neutral'}">${p.pts}</span> <span class="play-time-stamp">(${p.timeStamp})</span> ${p.isBigPlay ? '<span class="big-play-alert-tag">🚨 BIG PLAY ALERT</span>' : ''}
+              ${p.playerName} <span class="pts-delta-badge ${p.pts && p.pts.toString().startsWith('+') ? 'pos' : 'neutral'}">${p.pts}</span> <span class="play-time-stamp">(${p.timeStamp})</span> ${p.isTD ? '<span class="big-play-alert-tag" style="background: var(--accent-red); color: white;">🚨 BIG PLAY ALERT</span>' : (p.isBigPlay ? '<span class="big-play-alert-tag">🚨 BIG PLAY ALERT</span>' : '')}
             </span>
             <span class="play-desc" style="color: #ffffff; font-weight: 700; margin-top: 0.2rem; font-size: 0.82rem;">
               ${p.desc}

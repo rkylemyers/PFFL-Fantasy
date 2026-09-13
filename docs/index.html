@@ -90,11 +90,7 @@
             <span class="live-tag">LIVE FIELD CARD</span>
             <span id="current-play-summary">Hover any starter below to map their plays on the field</span>
           </div>
-          <!-- View Toggle Controls (Roster Totals vs Running Scoring Stream) -->
-          <div class="view-toggle-group">
-            <button class="toggle-btn active" id="btn-view-roster" title="Show Lineup Totals View">📊 Lineup Totals</button>
-            <button class="toggle-btn" id="btn-view-log" title="Show Running Scoring Stream">📜 Running Play Stream</button>
-          </div>
+          <!-- View Toggle Removed (Merged Views) -->
         </div>
 
         <!-- SVG Interactive Field Canvas -->
@@ -105,9 +101,9 @@
         </div>
       </div>
 
-      <!-- Live Fantasy Head-to-Head Split Panel -->
-      <div class="head-to-head-grid">
-        <!-- Left Team Panel -->
+      <!-- Live Fantasy Head-to-Head Split Panel (Running Stream) -->
+      <div class="head-to-head-grid" style="margin-bottom: 2rem;">
+        <!-- Left Team Panel (Stream) -->
         <div class="team-panel my-team-panel">
           <div class="team-header">
             <img id="my-team-logo" src="" alt="Left Team" class="franchise-logo" onerror="this.onerror=null; this.src='https://www44.myfantasyleague.com/fflnet2011/newhelmets/nh-0220.png';">
@@ -120,12 +116,12 @@
             </div>
           </div>
           <!-- Dynamic Content Feed -->
-          <div class="play-by-play-feed" id="my-team-play-feed">
+          <div class="play-by-play-feed" id="my-team-stream-feed" style="max-height: 400px; overflow-y: auto;">
             <!-- Rendered dynamically -->
           </div>
         </div>
 
-        <!-- Right Team Panel -->
+        <!-- Right Team Panel (Stream) -->
         <div class="team-panel opp-team-panel">
           <div class="team-header">
             <img id="opp-team-logo" src="" alt="Right Team" class="franchise-logo" onerror="this.onerror=null; this.src='https://www44.myfantasyleague.com/fflnet2011/newhelmets/nh-0220.png';">
@@ -138,7 +134,30 @@
             </div>
           </div>
           <!-- Dynamic Content Feed -->
-          <div class="play-by-play-feed" id="opp-team-play-feed">
+          <div class="play-by-play-feed" id="opp-team-stream-feed" style="max-height: 400px; overflow-y: auto;">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Fantasy Head-to-Head Split Panel (Lineup Totals) -->
+      <div class="head-to-head-grid">
+        <!-- Left Team Panel (Lineup) -->
+        <div class="team-panel my-team-panel">
+          <div class="team-header" style="background: var(--bg-alt); justify-content: center;">
+            <h3 style="margin:0;">Lineup Totals</h3>
+          </div>
+          <div class="play-by-play-feed" id="my-team-roster-feed">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Right Team Panel (Lineup) -->
+        <div class="team-panel opp-team-panel">
+          <div class="team-header" style="background: var(--bg-alt); justify-content: center;">
+            <h3 style="margin:0;">Lineup Totals</h3>
+          </div>
+          <div class="play-by-play-feed" id="opp-team-roster-feed">
             <!-- Rendered dynamically -->
           </div>
         </div>
@@ -405,6 +424,6 @@
 
   <!-- Scripts with cache buster v=20260913_7 -->
   <script src="field.js?v=20260913_7"></script>
-  <script src="app9.js"></script>
+  <script src="app10.js"></script>
 </body>
 </html>
