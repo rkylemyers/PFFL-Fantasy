@@ -114,23 +114,44 @@ class PFFLApp {
   espnPlayBuffer = [];
 
   startLivePolling() {
-    this.livePollingTimer = setInterval(async () => {
-      try {
-        const liveRes = await fetch('https://www44.myfantasyleague.com/2026/export?TYPE=liveScoring&L=44108&JSON=1')
-          .then(r => r.json())
-          .catch(() => fetch('data/liveScoring.json?t=' + Date.now()).then(r => r.json()));
-
-        if (liveRes && liveRes.liveScoring) {
-          this.liveScoringData = liveRes.liveScoring;
-          this.lastSyncTime = new Date().toLocaleTimeString();
-          document.getElementById("last-sync-timestamp").textContent = `LAST SYNC: ${this.lastSyncTime}`;
-          this.renderLiveMatchup(this.currentMatchupIndex);
-          this.renderMatchupStrip();
+    const navRight = document.querySelector('.nav-right');
+    if (navRight) {
+        const mflCdSpan = document.createElement('span');
+        mflCdSpan.className = 'last-sync-time';
+        mflCdSpan.style.color = 'var(--text-muted)';
+        mflCdSpan.style.marginLeft = '10px';
+        mflCdSpan.innerHTML = `(Next Sync: <span id="mfl-countdown-text">300s</span>)`;
+        const syncBtn = document.getElementById('btn-sync-data');
+        if (syncBtn) {
+            navRight.insertBefore(mflCdSpan, syncBtn);
         }
-      } catch (e) {
-        console.log("Polling update check:", e);
+    }
+
+    let mflCountdown = 300;
+    this.livePollingTimer = setInterval(async () => {
+      mflCountdown--;
+      const cdText = document.getElementById("mfl-countdown-text");
+      if (cdText) cdText.textContent = `${mflCountdown}s`;
+
+      if (mflCountdown <= 0) {
+          mflCountdown = 300;
+          try {
+            const liveRes = await fetch('https://www44.myfantasyleague.com/2026/export?TYPE=liveScoring&L=44108&JSON=1')
+              .then(r => r.json())
+              .catch(() => fetch('data/liveScoring.json?t=' + Date.now()).then(r => r.json()));
+
+            if (liveRes && liveRes.liveScoring) {
+              this.liveScoringData = liveRes.liveScoring;
+              this.lastSyncTime = new Date().toLocaleTimeString();
+              document.getElementById("last-sync-timestamp").textContent = `LAST SYNC: ${this.lastSyncTime}`;
+              this.renderLiveMatchup(this.currentMatchupIndex);
+              this.renderMatchupStrip();
+            }
+          } catch (e) {
+            console.log("Polling update check:", e);
+          }
       }
-    }, 15000);
+    }, 1000);
 
     // Poll ESPN Scoreboard every 10 seconds for real live plays
     this.pollESPN();
