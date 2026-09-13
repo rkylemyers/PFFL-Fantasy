@@ -409,19 +409,19 @@ class PFFLApp {
         pointLogs = playPoints.map(pt => `+${pt.toFixed(1)}`);
 
         // Convert base hour/minute into a minute representation to easily subtract minutes
-        let baseHour = 1 + (idx % 2);
-        let baseMin = 10 + (idx * 4);
+        let baseHour = 3;
+        let baseMin = 45;
         let baseDay = "Sun";
         
         // Restore real-world day overrides so historical data isn't blatantly wrong
         if (cleanName.toLowerCase().includes("strange")) {
-          baseDay = "Sun"; baseHour = 2; baseMin = 22; isBigPlay = true; isTD = true; baseStartYard = 82; baseYards = 18;
+          baseDay = "Sun"; baseHour = 3; baseMin = 54; isBigPlay = true; isTD = true; baseStartYard = 82; baseYards = 18;
           detailedPlayDesc = `🚨 TOUCHDOWN! Brenton Strange 18 yd pass reception from Trevor Lawrence down to end zone (+${playPoints[0].toFixed(1)} pts)`;
         } else if (cleanName.toLowerCase().includes("st. brown") || cleanName.toLowerCase().includes("brown")) {
-          baseDay = "Sun"; baseHour = 3; baseMin = 10; isBigPlay = true; isTD = true; baseStartYard = 60; baseYards = 40;
+          baseDay = "Sun"; baseHour = 3; baseMin = 55; isBigPlay = true; isTD = true; baseStartYard = 60; baseYards = 40;
           detailedPlayDesc = `🚨 TOUCHDOWN! ${cleanName} 40 yard pass reception from Jared Goff down to end zone (+${playPoints[0].toFixed(1)} pts)`;
         } else if (cleanName.toLowerCase().includes("tuten")) {
-          baseDay = "Sun"; baseHour = 2; baseMin = 45; baseStartYard = 68; baseYards = 18;
+          baseDay = "Sun"; baseHour = 3; baseMin = 53; baseStartYard = 68; baseYards = 18;
           detailedPlayDesc = `Bhayshul Tuten 18 yard rush off left tackle down to opponent 14 yard line (+${playPoints[0].toFixed(1)} pts)`;
         } else if (cleanName.toLowerCase().includes("adams")) {
           baseDay = "Thu"; baseHour = 8; baseMin = 40; isBigPlay = true; baseStartYard = 60; baseYards = 24;
@@ -576,36 +576,45 @@ class PFFLApp {
   }
 
   // Running Play Stream: Reverse Chronological Order (Most Recent on Top) with Time Stamps & Inline Big Play Alerts
-  createRunningStreamHTML(startersList, isOpponent) {
+  getTeamAllPlays(startersList) {
     let allPlays = [];
-    if (this.espnPlayBuffer) {
-      this.espnPlayBuffer.forEach(lp => {
-        // only include plays for this team
-        if (startersList.find(p => p.id === lp.playerId)) {
-          allPlays.push(lp);
-        }
-      });
-    }
-    
     startersList.forEach(p => {
       if (p.scoreNum > 0 && p.last5Plays && p.last5Plays.length > 0) {
         p.last5Plays.forEach(play => {
           allPlays.push({
             playerId: p.id,
-            playerName: p.name,
-            scoreStr: p.scoreStr, // could use play.pts but maybe user wants total points? Or use play.pts as pts for this play
+            playerName: p.name || play.playerName,
+            scoreStr: p.scoreStr,
             pts: play.pts,
             isBigPlay: play.isBigPlay,
             timeStamp: play.timeStamp,
             timeSortWeight: play.timeSortWeight,
             desc: play.desc,
-            team: p.team
+            team: p.team || play.team,
+            startYard: play.startYard,
+            yards: play.yards,
+            isTD: play.isTD
           });
         });
       }
     });
+    
+    // Deduplicate by desc just in case
+    const uniquePlays = [];
+    const seen = new Set();
+    allPlays.forEach(p => {
+       if (!seen.has(p.desc)) {
+         seen.add(p.desc);
+         uniquePlays.push(p);
+       }
+    });
 
-    allPlays.sort((a, b) => b.timeSortWeight - a.timeSortWeight);
+    uniquePlays.sort((a, b) => b.timeSortWeight - a.timeSortWeight);
+    return uniquePlays;
+  }
+
+  createRunningStreamHTML(startersList, isOpponent) {
+    const allPlays = this.getTeamAllPlays(startersList);
 
     if (allPlays.length === 0) {
       return `<div style="color: var(--text-muted); font-size: 0.8rem; padding: 0.75rem;">No live scoring plays recorded yet for this team.</div>`;
@@ -616,7 +625,7 @@ class PFFLApp {
         <div class="play-item-left">
           <div class="play-details">
             <span class="player-name-line" style="color: var(--accent-cyan)">
-              ${p.playerName} <span class="pts-delta-badge pos">${p.pts}</span> <span class="play-time-stamp">(${p.timeStamp})</span> ${p.isBigPlay ? '<span class="big-play-alert-tag">🚨 BIG PLAY ALERT</span>' : ''}
+              ${p.playerName} <span class="pts-delta-badge ${p.pts && p.pts.toString().startsWith('+') ? 'pos' : 'neutral'}">${p.pts}</span> <span class="play-time-stamp">(${p.timeStamp})</span> ${p.isBigPlay ? '<span class="big-play-alert-tag">🚨 BIG PLAY ALERT</span>' : ''}
             </span>
             <span class="play-desc" style="color: #ffffff; font-weight: 700; margin-top: 0.2rem; font-size: 0.82rem;">
               ${p.desc}
