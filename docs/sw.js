@@ -1,3 +1,5 @@
+const CACHE_VERSION = 'v2';
+
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
@@ -11,7 +13,7 @@ self.addEventListener('fetch', (event) => {
 });
 
 self.addEventListener('push', function(event) {
-    // We handle push manually via frontend polling for now, but this allows Web Push API
+    // We handle push manually via frontend polling for now
 });
 
 self.addEventListener('notificationclick', function(event) {
