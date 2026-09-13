@@ -110,6 +110,9 @@ class PFFLApp {
     }
   }
 
+  seenESPNPlayIds = new Set();
+  espnPlayBuffer = [];
+
   startLivePolling() {
     this.livePollingTimer = setInterval(async () => {
       try {
@@ -128,6 +131,81 @@ class PFFLApp {
         console.log("Polling update check:", e);
       }
     }, 15000);
+
+    // Poll ESPN Scoreboard every 10 seconds for real live plays
+    setInterval(() => {
+      this.pollESPN();
+    }, 10000);
+    this.pollESPN();
+  }
+
+  async pollESPN() {
+    try {
+      const resp = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard');
+      const data = await resp.json();
+      
+      let allActivePlayers = [...(this.team1Starters || []), ...(this.team2Starters || [])];
+      if (allActivePlayers.length === 0) return;
+
+      let newPlaysFound = false;
+
+      data.events.forEach(evt => {
+        const comp = evt.competitions[0];
+        if (comp.situation && comp.situation.lastPlay) {
+          const play = comp.situation.lastPlay;
+          if (this.seenESPNPlayIds.has(play.id)) return;
+          this.seenESPNPlayIds.add(play.id);
+
+          // Check if any athlete involved matches our active roster
+          if (play.athletesInvolved) {
+            play.athletesInvolved.forEach(ath => {
+              const match = allActivePlayers.find(p => p.name.toLowerCase().includes(ath.fullName.toLowerCase()) || ath.fullName.toLowerCase().includes(p.name.toLowerCase()));
+              if (match) {
+                // Heuristic Fantasy Points calculation
+                let fpts = (play.statYardage || 0) * 0.1;
+                let isTD = play.text.toLowerCase().includes('touchdown');
+                if (isTD) fpts += 6.0;
+                if (play.type && play.type.text === 'Pass Reception') fpts += 1.0;
+                
+                const playObj = {
+                  playerId: match.id,
+                  playerName: match.name,
+                  scoreStr: match.scoreStr,
+                  pts: `+${fpts.toFixed(1)}`,
+                  isBigPlay: (play.statYardage && play.statYardage >= 20) || isTD,
+                  timeStamp: "LIVE",
+                  timeSortWeight: 99999 + Date.now()/100000,
+                  desc: `🚨 LIVE: ${play.text} (+${fpts.toFixed(1)} pts)`,
+                  team: match.team,
+                  startYard: comp.situation.yardLine || 25,
+                  yards: play.statYardage || 0
+                };
+                
+                if (!match.last5Plays) match.last5Plays = [];
+                match.last5Plays.unshift(playObj);
+                
+                this.espnPlayBuffer.unshift(playObj);
+                newPlaysFound = true;
+
+                if (this.field) {
+                  document.getElementById("current-play-summary").textContent = `LIVE MAPPING: ${match.name} on the field`;
+                  this.field.renderPlayerLast5Plays(match.last5Plays, false, match);
+                }
+              }
+            });
+          }
+        }
+      });
+
+      if (newPlaysFound) {
+        const myFeed = document.getElementById("my-team-play-feed");
+        const oppFeed = document.getElementById("opp-team-play-feed");
+        if (myFeed) myFeed.innerHTML = this.createRunningStreamHTML(this.team1Starters, false);
+        if (oppFeed) oppFeed.innerHTML = this.createRunningStreamHTML(this.team2Starters, true);
+      }
+    } catch (e) {
+      console.warn("ESPN Polling error:", e);
+    }
   }
 
   renderAll() {

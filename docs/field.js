@@ -283,7 +283,6 @@ class FootballField {
         labelText = `🚨 BIG PLAY! ${pName} ${play.pts} PTS`;
       } else {
         labelText = `${pName}: ${play.pts} PTS`;
-      } PTS` : `PLAY -${index}: ${play.pts} PTS`;
       }
 
       const fontSize = index === 0 ? 20 : Math.max(15, Math.round(18 * shrinkFactor));
