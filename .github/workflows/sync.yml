@@ -23,6 +23,8 @@ jobs:
 
     - name: Run Synchronizer
       run: go run main.go
+      env:
+        SYNC_SOURCE: 'GitHub Actions (Cloud)'
 
     - name: Commit and Push Changes
       run: |

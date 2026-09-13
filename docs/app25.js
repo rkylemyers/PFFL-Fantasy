@@ -32,6 +32,16 @@ class PFFLApp {
     this.field = new FootballField("football-field-svg");
 
     await this.loadData();
+    try {
+        const statRes = await fetch('data/sync_status.json?t=' + Date.now()).then(r => r.json());
+        if (statRes) {
+            const delayMs = Date.now() - statRes.timestamp;
+            const delayMins = Math.floor(delayMs / 60000);
+            let delayText = delayMins > 1 ? ` (${delayMins}m old)` : ' (Live)';
+            let ssElem = document.getElementById("sync-source-text");
+            if (ssElem) ssElem.textContent = `Server: ${statRes.source}${delayText}`;
+        }
+    } catch (e) {}
     this.renderAll();
     this.setupEventListeners();
     this.startLivePolling();
@@ -139,6 +149,17 @@ class PFFLApp {
             const liveRes = await fetch('https://www44.myfantasyleague.com/2026/export?TYPE=liveScoring&L=44108&JSON=1')
               .then(r => r.json())
               .catch(() => fetch('data/liveScoring.json?t=' + Date.now()).then(r => r.json()));
+
+            try {
+                const statRes = await fetch('data/sync_status.json?t=' + Date.now()).then(r => r.json());
+                if (statRes) {
+                    const delayMs = Date.now() - statRes.timestamp;
+                    const delayMins = Math.floor(delayMs / 60000);
+                    let delayText = delayMins > 1 ? ` (${delayMins}m old)` : ' (Live)';
+                    let ssElem = document.getElementById("sync-source-text");
+                    if (ssElem) ssElem.textContent = `Server: ${statRes.source}${delayText}`;
+                }
+            } catch (e) {}
 
             if (liveRes && liveRes.liveScoring) {
               this.liveScoringData = liveRes.liveScoring;
