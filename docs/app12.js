@@ -357,10 +357,13 @@ class PFFLApp {
                 newPlaysFound = true;
 
                 if (this.field) {
-                  const team1PlaysLive = this.getTeamAllPlays(this.team1Starters);
-                  const top5PlaysLive = team1PlaysLive.slice(0, 5);
-                  document.getElementById("current-play-summary").textContent = `LIVE MAPPING: Top 5 Recent Plays`;
-                  this.field.renderPlayerLast5Plays(top5PlaysLive, false, null);
+                  let allPlays1 = this.getTeamAllPlays(this.team1Starters).map(p => ({...p, isOpponent: false}));
+                  let allPlays2 = this.getTeamAllPlays(this.team2Starters).map(p => ({...p, isOpponent: true}));
+                  let combined = [...allPlays1, ...allPlays2].sort((a,b) => b.timeSortWeight - a.timeSortWeight).slice(0, 6);
+                  document.getElementById("current-play-summary").textContent = `Displaying the last ${combined.length} scoring plays`;
+                  if (this.field && this.field.renderCombinedPlays) {
+                      this.field.renderCombinedPlays(combined);
+                  }
                 }
               }
             });
