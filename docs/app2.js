@@ -137,6 +137,82 @@ class PFFLApp {
       this.pollESPN();
     }, 10000);
     this.pollESPN();
+    this.loadRealHistoricalPlays();
+  }
+
+  async loadRealHistoricalPlays() {
+    try {
+      const resp = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard');
+      const data = await resp.json();
+      
+      const gameIds = data.events.map(e => e.id);
+      let allActivePlayers = [...(this.team1Starters || []), ...(this.team2Starters || [])];
+      if (allActivePlayers.length === 0) return;
+
+      const playerMap = new Map();
+      allActivePlayers.forEach(p => {
+        let n = p.name.split(' ').slice(-1)[0];
+        playerMap.set(n, p);
+      });
+
+      for (const gid of gameIds) {
+        try {
+          const sResp = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=${gid}`);
+          const sData = await sResp.json();
+          if (sData.drives && sData.drives.previous) {
+            for (const drive of sData.drives.previous) {
+              if (!drive.plays) continue;
+              for (const play of drive.plays) {
+                if (!play.text || !play.wallclock) continue;
+                
+                // Check if any of our players are in the text
+                for (const [lastName, pObj] of playerMap.entries()) {
+                  if (play.text.includes(lastName)) {
+                    // It's a match! Format the play
+                    let pTime = new Date(play.wallclock);
+                    let pStamp = pTime.toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'}) + (play.clock ? ` (Q${play.period} ${play.clock.displayValue})` : '');
+                    
+                    let isTD = play.text.includes('TOUCHDOWN');
+                    let isBigPlay = isTD || play.statYardage >= 20;
+                    
+                    const newPlay = {
+                      playerId: pObj.id,
+                      playerName: pObj.name,
+                      pts: "",
+                      isPos: true,
+                      isTD: isTD,
+                      isBigPlay: isBigPlay,
+                      desc: play.text,
+                      timeStamp: pStamp,
+                      timeSortWeight: pTime.getTime(),
+                      startYard: play.start ? play.start.yardLine : 50,
+                      yards: play.statYardage || 0,
+                      team: pObj.team
+                    };
+
+                    if (!pObj.last5Plays) pObj.last5Plays = [];
+                    if (!pObj.last5Plays.find(p => p.desc === play.text)) {
+                       pObj.last5Plays.push(newPlay);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        } catch(e) {}
+      }
+      
+      allActivePlayers.forEach(p => {
+        if (p.last5Plays) {
+          p.last5Plays.sort((a,b) => b.timeSortWeight - a.timeSortWeight);
+          p.last5Plays = p.last5Plays.slice(0, 5);
+        }
+      });
+      
+      this.renderLiveMatchup(this.currentMatchupIndex);
+    } catch(e) {
+      console.error(e);
+    }
   }
 
   async pollESPN() {
@@ -403,6 +479,8 @@ class PFFLApp {
       let baseYards = 5;
 
       if (scoreNum > 0) {
+          // Plays will be loaded asynchronously from ESPN!
+      } else if (false) { // Skip old mock code
         const numPlays = Math.min(5, Math.max(2, Math.floor(scoreNum / 2) + 1));
         const playPoints = [];
         let remainingScore = scoreNum;
