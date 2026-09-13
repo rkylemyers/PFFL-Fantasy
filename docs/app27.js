@@ -174,6 +174,30 @@ class PFFLApp {
       }
     }, 1000);
 
+    // Check GitHub Actions delay explicitly for the user
+    const checkGHDelay = async () => {
+        try {
+            const res = await fetch('https://api.github.com/repos/rkylemyers/PFFL-Fantasy/actions/runs?per_page=1').then(r => r.json());
+            if (res && res.workflow_runs && res.workflow_runs.length > 0) {
+                const lastRun = res.workflow_runs[0];
+                const lastRunTime = new Date(lastRun.created_at).getTime();
+                const delayMins = Math.floor((Date.now() - lastRunTime) / 60000);
+                const ghElem = document.getElementById("gh-delay-text");
+                if (ghElem) {
+                    if (delayMins < 7) {
+                        ghElem.textContent = `MSFT Cloud Status: Healthy (${delayMins}m)`;
+                        ghElem.style.color = "var(--text-muted)";
+                    } else {
+                        ghElem.textContent = `MSFT Cloud Backlog: ${delayMins}m late!`;
+                        ghElem.style.color = "var(--accent-red)";
+                    }
+                }
+            }
+        } catch(e) {}
+    };
+    checkGHDelay();
+    setInterval(checkGHDelay, 60000);
+
     // Poll ESPN Scoreboard every 10 seconds for real live plays
     this.pollESPN();
     let playCountdown = 10;
