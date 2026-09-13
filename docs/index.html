@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260913_7">
+  <link rel="stylesheet" href="styles.css?v=20260913_8">
 </head>
 <body class="dark-theme">
   <!-- Top Global Navigation Bar -->
@@ -106,10 +106,10 @@
         </div>
       </div>
 
-      <!-- Live Fantasy Head-to-Head Split Panel (Running Stream) -->
-      <div class="head-to-head-grid" style="margin-bottom: 2rem;">
+      <!-- Live Fantasy Unified Split Panels -->
+      <div class="desktop-split-mobile-stack">
         <!-- Left Team Panel (Stream) -->
-        <div class="team-panel my-team-panel">
+        <div class="team-panel my-stream-area">
           <div class="team-header">
             <img id="my-team-logo" src="" alt="Left Team" class="franchise-logo" onerror="this.onerror=null; this.src='https://www44.myfantasyleague.com/fflnet2011/newhelmets/nh-0220.png';">
             <div class="team-info">
@@ -120,14 +120,12 @@
               </div>
             </div>
           </div>
-          <!-- Dynamic Content Feed -->
           <div class="play-by-play-feed" id="my-team-stream-feed" style="max-height: 400px; overflow-y: auto;">
-            <!-- Rendered dynamically -->
           </div>
         </div>
 
         <!-- Right Team Panel (Stream) -->
-        <div class="team-panel opp-team-panel">
+        <div class="team-panel opp-stream-area">
           <div class="team-header">
             <img id="opp-team-logo" src="" alt="Right Team" class="franchise-logo" onerror="this.onerror=null; this.src='https://www44.myfantasyleague.com/fflnet2011/newhelmets/nh-0220.png';">
             <div class="team-info">
@@ -138,32 +136,25 @@
               </div>
             </div>
           </div>
-          <!-- Dynamic Content Feed -->
           <div class="play-by-play-feed" id="opp-team-stream-feed" style="max-height: 400px; overflow-y: auto;">
-            <!-- Rendered dynamically -->
           </div>
         </div>
-      </div>
 
-      <!-- Live Fantasy Head-to-Head Split Panel (Lineup Totals) -->
-      <div class="head-to-head-grid">
         <!-- Left Team Panel (Lineup) -->
-        <div class="team-panel my-team-panel">
+        <div class="team-panel my-lineup-area">
           <div class="team-header" style="background: var(--bg-alt); justify-content: center;">
             <h3 style="margin:0;">Lineup Totals</h3>
           </div>
           <div class="play-by-play-feed" id="my-team-roster-feed" style="max-height: none; overflow-y: visible;">
-            <!-- Rendered dynamically -->
           </div>
         </div>
 
         <!-- Right Team Panel (Lineup) -->
-        <div class="team-panel opp-team-panel">
+        <div class="team-panel opp-lineup-area">
           <div class="team-header" style="background: var(--bg-alt); justify-content: center;">
             <h3 style="margin:0;">Lineup Totals</h3>
           </div>
           <div class="play-by-play-feed" id="opp-team-roster-feed" style="max-height: none; overflow-y: visible;">
-            <!-- Rendered dynamically -->
           </div>
         </div>
       </div>
@@ -427,8 +418,8 @@
   <!-- Notification Toast Container -->
   <div id="toast-container" class="toast-container"></div>
 
-  <!-- Scripts with cache buster v=20260913_7 -->
-  <script src="field.js?v=20260913_7"></script>
+  <!-- Scripts with cache buster v=20260913_8 -->
+  <script src="field.js?v=20260913_8"></script>
   <script src="app28.js"></script>
 </body>
 </html>

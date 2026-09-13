@@ -986,3 +986,47 @@ body.dark-theme {
     grid-template-columns: 1fr;
   }
 }
+
+/* NEW UNIFIED GRID SYSTEM FOR MOBILE STACKING */
+.desktop-split-mobile-stack {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas: 
+    "mystream oppstream"
+    "mylineup opplineup";
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.my-stream-area { grid-area: mystream; }
+.opp-stream-area { grid-area: oppstream; }
+.my-lineup-area { grid-area: mylineup; }
+.opp-lineup-area { grid-area: opplineup; }
+
+/* FIX MATCHUP BANNER HEADER ON MOBILE */
+@media (max-width: 900px) {
+  .matchup-banner-header {
+    flex-direction: column;
+    padding: 0.8rem;
+    gap: 0.5rem;
+  }
+  .banner-team {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .banner-team.banner-right {
+    flex-direction: row-reverse;
+  }
+  .banner-center-score {
+    width: 100%;
+    text-align: center;
+    margin: 0.5rem 0;
+  }
+  .desktop-split-mobile-stack {
+    grid-template-columns: 1fr;
+    grid-template-areas: 
+      "mystream"
+      "mylineup"
+      "oppstream"
+      "opplineup";
+  }
+}
