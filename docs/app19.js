@@ -142,7 +142,7 @@ class PFFLApp {
             this.pollESPN();
         }
         const cdElem = document.getElementById('play-countdown');
-        if (cdElem) cdElem.textContent = `Next Play Check: ${playCountdown}s`;
+        if (cdElem) cdElem.textContent = `${playCountdown}s`;
     }, 1000);
   }
 
