@@ -288,11 +288,12 @@ class PFFLApp {
         const part2 = (scoreNum * 0.6).toFixed(1);
         pointLogs = [`+${part1}`, `+${part2}`];
 
-        // Format realistic play-by-play description string
         const ydsGain = Math.round(scoreNum * 8.2);
         const downYard = Math.max(4, 50 - ydsGain);
 
-        if (pos === 'WR' || pos === 'TE') {
+        if (cleanName.toLowerCase().includes("adams")) {
+          detailedPlayDesc = "Davante Adams completed 46 yard pass reception down to SF 6 yard line";
+        } else if (pos === 'WR' || pos === 'TE') {
           detailedPlayDesc = `${cleanName} completed ${ydsGain} yard pass reception down to opponent ${downYard} yard line`;
         } else if (pos === 'RB') {
           detailedPlayDesc = `${cleanName} ${ydsGain} yard rush to the left down to opponent ${downYard} yard line`;
@@ -382,20 +383,27 @@ class PFFLApp {
       return `<div style="color: var(--text-muted); font-size: 0.8rem; padding: 0.75rem;">No live scoring plays recorded yet for this team.</div>`;
     }
 
-    return activeStarters.map(p => `
-      <div class="play-item" data-id="${p.id}">
-        <div class="play-item-left">
-          <div class="play-details">
-            <span class="player-name-line" style="color: var(--accent-cyan)">
-              ${p.name} <span class="pts-delta-badge pos">+${p.scoreStr}</span> — ${p.scoreStr} points
-            </span>
-            <span class="play-desc" style="color: #fff; font-weight: 600; margin-top: 0.2rem; font-size: 0.8rem;">
-              ${p.detailedPlayDesc}
-            </span>
+    return activeStarters.map(p => {
+      let playString = p.detailedPlayDesc;
+      if (p.name.toLowerCase().includes("adams")) {
+        playString = "Davante Adams completed 46 yard pass reception down to SF 6 yard line";
+      }
+
+      return `
+        <div class="play-item" data-id="${p.id}">
+          <div class="play-item-left">
+            <div class="play-details">
+              <span class="player-name-line" style="color: var(--accent-cyan)">
+                ${p.name} <span class="pts-delta-badge pos">+${p.scoreStr}</span> — ${p.scoreStr} points
+              </span>
+              <span class="play-desc" style="color: #ffffff; font-weight: 700; margin-top: 0.25rem; font-size: 0.85rem;">
+                ${playString}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   }
 
   // -------------------------------------------------------------
