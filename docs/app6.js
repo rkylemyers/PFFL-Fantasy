@@ -118,14 +118,7 @@ class PFFLApp {
       try {
         const liveRes = await fetch('https://www44.myfantasyleague.com/2026/export?TYPE=liveScoring&L=44108&JSON=1')
           .then(r => r.json())
-          .catch(() => {
-            // CORS blocked direct fetch. Use proxy to get live data.
-            const url = encodeURIComponent('https://www44.myfantasyleague.com/2026/export?TYPE=liveScoring&L=44108&JSON=1');
-            return fetch(`https://api.allorigins.win/get?url=${url}`)
-              .then(r => r.json())
-              .then(data => JSON.parse(data.contents))
-              .catch(() => fetch('data/liveScoring.json?t=' + Date.now()).then(r => r.json()));
-          });
+          .catch(() => fetch('data/liveScoring.json?t=' + Date.now()).then(r => r.json()));
 
         if (liveRes && liveRes.liveScoring) {
           this.liveScoringData = liveRes.liveScoring;
