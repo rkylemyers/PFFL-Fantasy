@@ -145,6 +145,14 @@ class PFFLApp {
       const data = await resp.json();
       
       const gameIds = data.events.map(e => e.id);
+      const teamToGame = new Map();
+      data.events.forEach(e => {
+        if (e.competitions && e.competitions[0].competitors) {
+           e.competitions[0].competitors.forEach(c => {
+             teamToGame.set(c.team.abbreviation.toUpperCase(), e.id);
+           });
+        }
+      });
       let allActivePlayers = [...(this.team1Starters || []), ...(this.team2Starters || [])];
       if (allActivePlayers.length === 0) return;
 
@@ -168,6 +176,11 @@ class PFFLApp {
                 
                 // Check if any of our players are in the text
                 for (const [espnName, pObj] of playerMap.entries()) {
+                  let pTeam = pObj.team ? pObj.team.toUpperCase() : '';
+                  const tMap = { 'NOS':'NO', 'GBP':'GB', 'LVR':'LV', 'SFO':'SF', 'TBB':'TB', 'KCC':'KC', 'NEP':'NE', 'WAS':'WSH', 'JAC':'JAX' };
+                  if (tMap[pTeam]) pTeam = tMap[pTeam];
+                  if (pTeam && teamToGame.get(pTeam) && teamToGame.get(pTeam) !== gid) continue;
+
                   // Strip administrative referee notes that falsely credit players with involvement
                   let cleanedPlayText = play.text.replace(new RegExp(espnName.replace(".", "\\.") + " reported (in )?as eligible[\\.,]?", "gi"), "").trim();
                   
@@ -282,6 +295,14 @@ class PFFLApp {
       if (allActivePlayers.length === 0) return;
 
       let newPlaysFound = false;
+      const teamToGame = new Map();
+      data.events.forEach(e => {
+        if (e.competitions && e.competitions[0].competitors) {
+           e.competitions[0].competitors.forEach(c => {
+             teamToGame.set(c.team.abbreviation.toUpperCase(), e.id);
+           });
+        }
+      });
 
       data.events.forEach(evt => {
         const comp = evt.competitions[0];
@@ -293,7 +314,14 @@ class PFFLApp {
           // Check if any athlete involved matches our active roster
           if (play.athletesInvolved) {
             play.athletesInvolved.forEach(ath => {
-              const match = allActivePlayers.find(p => p.name.toLowerCase().includes(ath.fullName.toLowerCase()) || ath.fullName.toLowerCase().includes(p.name.toLowerCase()));
+              const match = allActivePlayers.find(p => {
+                let pTeam = p.team ? p.team.toUpperCase() : '';
+                const tMap = { 'NOS':'NO', 'GBP':'GB', 'LVR':'LV', 'SFO':'SF', 'TBB':'TB', 'KCC':'KC', 'NEP':'NE', 'WAS':'WSH', 'JAC':'JAX' };
+                if (tMap[pTeam]) pTeam = tMap[pTeam];
+                if (pTeam && teamToGame.get(pTeam) && teamToGame.get(pTeam) !== evt.id) return false;
+                
+                return p.name.toLowerCase().includes(ath.fullName.toLowerCase()) || ath.fullName.toLowerCase().includes(p.name.toLowerCase());
+              });
               if (match) {
                 // Heuristic Fantasy Points calculation
                 let fpts = (play.statYardage || 0) * 0.1;
