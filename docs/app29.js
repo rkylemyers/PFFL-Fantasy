@@ -79,18 +79,48 @@ class PFFLApp {
         this.renderLiveMatchup(this.currentMatchupIndex);
       });
       
+      // Register Service Worker for Mobile PWA Notifications
+      if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register('sw.js').catch(err => console.warn("SW registration failed", err));
+      }
+
       const btnNotif = document.getElementById("btn-enable-notifications");
       if (btnNotif) {
         if (Notification.permission === "granted") btnNotif.style.opacity = "0.5";
         btnNotif.addEventListener("click", () => {
-            Notification.requestPermission().then(perm => {
-                if (perm === "granted") {
-                    btnNotif.style.opacity = "0.5";
-                    new Notification("Notifications Enabled!", { body: "You will now receive scoring alerts for your team.", icon: "favicon.png" });
-                } else {
-                    alert("Notifications were denied. Please enable them in your browser settings.");
+            try {
+                if (!("Notification" in window)) {
+                    alert("Notifications are not supported in this browser.");
+                    return;
                 }
-            });
+                
+                const handlePerm = (perm) => {
+                    if (perm === "granted") {
+                        btnNotif.style.opacity = "0.5";
+                        const title = "Notifications Enabled!";
+                        const opts = { body: "You will now receive scoring alerts for your team.", icon: "favicon.png", badge: "favicon.png" };
+                        
+                        if ('serviceWorker' in navigator) {
+                            navigator.serviceWorker.ready.then(reg => {
+                                reg.showNotification(title, opts);
+                            }).catch(e => {
+                                try { new Notification(title, opts); } catch(ex) { alert("SW Ready Error: " + ex.message); }
+                            });
+                        } else {
+                            try { new Notification(title, opts); } catch(e) { alert("Fallback Error: " + e.message); }
+                        }
+                    } else {
+                        alert("Notifications were denied. Please enable them in your browser settings.");
+                    }
+                };
+                
+                const promise = Notification.requestPermission(handlePerm);
+                if (promise) {
+                    promise.then(handlePerm).catch(e => alert("Permission Error: " + e.message));
+                }
+            } catch(err) {
+                alert("Critical API Error: " + err.message);
+            }
         });
       }
     }
@@ -480,7 +510,13 @@ class PFFLApp {
                 if (this.team1Starters && this.team1Starters.includes(match) && Notification.permission === "granted") {
                     const title = `🚨 ${match.name} (+${fpts.toFixed(1)} pts)`;
                     const body = play.text;
-                    new Notification(title, { body: body, icon: "favicon.png" });
+                    if ('serviceWorker' in navigator) {
+                        navigator.serviceWorker.ready.then(reg => {
+                            reg.showNotification(title, { body: body, icon: "favicon.png", badge: "favicon.png" });
+                        }).catch(e => console.warn("SW Error:", e));
+                    } else {
+                        try { new Notification(title, { body: body, icon: "favicon.png" }); } catch(e) {}
+                    }
                 }
 
                 if (this.field) {
