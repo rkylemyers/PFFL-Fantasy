@@ -88,47 +88,67 @@ class PFFLApp {
       if (btnNotif) {
         if (Notification.permission === "granted") btnNotif.style.opacity = "0.5";
         btnNotif.addEventListener("click", () => {
+
+            const showMsg = (msg) => {
+                const el = document.getElementById("gh-delay-text");
+                if(el) { el.textContent = msg; el.style.color = "var(--accent-yellow)"; setTimeout(()=> {if(typeof checkGHDelay === 'function') checkGHDelay();}, 7000); }
+            };
+            
             try {
                 if (!("Notification" in window)) {
-                    alert("System Error: Your specific mobile browser / OS version completely blocks Web Push Notifications (Missing window.Notification API). If on iOS, ensure you are on iOS 16.4+.");
+                    showMsg("Error: OS blocks Push");
                     return;
                 }
                 if (Notification.permission === "denied") {
-                    alert("Notifications are permanently blocked by your phone! You must open your phone's Settings app, find this installed Web App, and explicitly grant Notification permissions.");
+                    showMsg("Blocked in Phone Settings!");
                     return;
                 }
+                
+                const fireTestAlert = () => {
+                    showMsg("Firing Test Push...");
+                    btnNotif.style.opacity = "0.5";
+                    const title = "🚨 L.McConkey (+10.5 pts)";
+                    const opts = { 
+                        body: "(Shotgun) J.Herbert pass deep left to L.McConkey for 45 yards, TOUCHDOWN.", 
+                        icon: window.location.origin + window.location.pathname.replace('index.html', '') + "favicon.png",
+                        badge: window.location.origin + window.location.pathname.replace('index.html', '') + "favicon.png",
+                        vibrate: [200, 100, 200]
+                    };
+                    if ('serviceWorker' in navigator) {
+                        navigator.serviceWorker.getRegistration().then(reg => {
+                            if (reg) {
+                                reg.showNotification(title, opts).catch(e => showMsg("SW Push Err: " + e.message));
+                                showMsg("Sent via SW!");
+                            } else {
+                                showMsg("No SW. Fallback...");
+                                try { new Notification(title, opts); } catch(ex) { showMsg("Fallback Err: " + ex.message); }
+                            }
+                        }).catch(e => showMsg("SW Reg Err: " + e.message));
+                    } else {
+                        try { new Notification(title, opts); } catch(e) { showMsg("Fallback Err: " + e.message); }
+                    }
+                };
+
                 if (Notification.permission === "granted") {
-                    alert("Notifications are already enabled and active!");
+                    fireTestAlert();
                     return;
                 }
                 
-                
+                showMsg("Requesting Permission...");
                 const handlePerm = (perm) => {
                     if (perm === "granted") {
-                        btnNotif.style.opacity = "0.5";
-                        const title = "Notifications Enabled!";
-                        const opts = { body: "You will now receive scoring alerts for your team.", icon: "favicon.png", badge: "favicon.png" };
-                        
-                        if ('serviceWorker' in navigator) {
-                            navigator.serviceWorker.ready.then(reg => {
-                                reg.showNotification(title, opts);
-                            }).catch(e => {
-                                try { new Notification(title, opts); } catch(ex) { alert("SW Ready Error: " + ex.message); }
-                            });
-                        } else {
-                            try { new Notification(title, opts); } catch(e) { alert("Fallback Error: " + e.message); }
-                        }
+                        fireTestAlert();
                     } else {
-                        alert("Notifications were denied. Please enable them in your browser settings.");
+                        showMsg("Permission Denied.");
                     }
                 };
                 
                 const promise = Notification.requestPermission(handlePerm);
                 if (promise) {
-                    promise.then(handlePerm).catch(e => alert("Permission Error: " + e.message));
+                    promise.then(handlePerm).catch(e => showMsg("Perm Err: " + e.message));
                 }
             } catch(err) {
-                alert("Critical API Error: " + err.message);
+                showMsg("Critical API Error: " + err.message);
             }
         });
       }
