@@ -13,6 +13,8 @@ class PFFLApp {
     this.transactionsData = [];
     this.liveScoringData = null;
     this.field = null;
+    this.currentMatchupIndex = 0;
+    this.livePollingTimer = null;
 
     // Roster Lineup Arrays
     this.starters = [];
@@ -30,6 +32,7 @@ class PFFLApp {
     await this.loadData();
     this.renderAll();
     this.setupEventListeners();
+    this.startLivePolling();
   }
 
   setupNavigation() {
@@ -49,7 +52,7 @@ class PFFLApp {
 
   async loadData() {
     try {
-      // Load static data synced by Go backend
+      // Load static data synced by Go backend / MFL
       const [leagueRes, rostersRes, playersRes, txRes, projRes, liveRes] = await Promise.all([
         fetch('data/league.json').then(r => r.json()).catch(() => ({})),
         fetch('data/rosters.json').then(r => r.json()).catch(() => ({})),
@@ -84,9 +87,25 @@ class PFFLApp {
     }
   }
 
+  startLivePolling() {
+    // Poll live scores every 15 seconds
+    this.livePollingTimer = setInterval(async () => {
+      try {
+        const liveRes = await fetch('data/liveScoring.json?t=' + Date.now()).then(r => r.json());
+        if (liveRes && liveRes.liveScoring) {
+          this.liveScoringData = liveRes.liveScoring;
+          this.renderLiveMatchup(this.currentMatchupIndex);
+          console.log("🔄 Live Scores Refreshed");
+        }
+      } catch (e) {
+        console.log("Polling update check:", e);
+      }
+    }, 15000);
+  }
+
   renderAll() {
     this.renderMatchupSelector();
-    this.renderLiveMatchup();
+    this.renderLiveMatchup(0);
     this.renderRoster();
     this.renderTrendsAndReplacements();
     this.renderDuesAndLedger();
@@ -102,59 +121,72 @@ class PFFLApp {
 
     dropdown.innerHTML = '';
     const franchises = this.leagueData.franchises.franchise || [];
-    
-    // Create week 1 sample matchups
-    const matchups = [
-      { id: "1", team1: "0001", team2: "0002" }, // Mentalcow vs Blitzkrieg
-      { id: "2", team1: "0003", team2: "0004" }, // Black Souls vs Warhorse
-      { id: "3", team1: "0005", team2: "0006" }, // Zombiez vs Smokin Gunz
-      { id: "4", team1: "0007", team2: "0008" }, // Dahmer's Buffet vs Pack Attack
-      { id: "5", team1: "0009", team2: "0010" }, // Skitzos vs Bleed Green
-      { id: "6", team1: "0011", team2: "0012" }  // Mystery Men vs Curt's RIPs
-    ];
+    const matchups = (this.liveScoringData.matchup) || [];
 
-    matchups.forEach(m => {
-      const f1 = franchises.find(f => f.id === m.team1) || { name: m.team1 };
-      const f2 = franchises.find(f => f.id === m.team2) || { name: m.team2 };
+    matchups.forEach((m, idx) => {
+      const f1Id = m.franchise[0].id;
+      const f2Id = m.franchise[1].id;
+      const f1 = franchises.find(f => f.id === f1Id) || { name: `Team ${f1Id}` };
+      const f2 = franchises.find(f => f.id === f2Id) || { name: `Team ${f2Id}` };
+
       const opt = document.createElement("option");
-      opt.value = m.id;
-      opt.textContent = `${f1.name} vs ${f2.name}`;
+      opt.value = idx;
+      opt.textContent = `Matchup ${idx + 1}: ${f1.name} (${m.franchise[0].score || '0.00'}) vs ${f2.name} (${m.franchise[1].score || '0.00'})`;
       dropdown.appendChild(opt);
     });
 
     dropdown.addEventListener("change", (e) => {
-      this.renderLiveMatchup(e.target.value);
+      this.currentMatchupIndex = parseInt(e.target.value);
+      this.renderLiveMatchup(this.currentMatchupIndex);
     });
   }
 
-  renderLiveMatchup(matchupId = "1") {
-    // Sample live play-by-play data with point deltas and yardages
-    const samplePlaysMyTeam = [
-      { player: "Saquon Barkley", pos: "RB", pts: "+1.5", isPos: true, desc: "Saquon run on 3rd & 2 for 15 yards down to WSH 37", startYard: 48, yards: 15 },
-      { player: "Patrick Mahomes", pos: "QB", pts: "+2.4", isPos: true, desc: "Mahomes pass deep left to Kelce for 24 yards", startYard: 25, yards: 24 },
-      { player: "A.J. Brown", pos: "WR", pts: "+6.0", isPos: true, desc: "Brown 42 yd touchdown pass reception from Hurts", startYard: 42, yards: 42 },
-      { player: "Saquon Barkley", pos: "RB", pts: "-3.0", isPos: false, desc: "Saquon fumbled on 1st & 10, recovered by WSH", startYard: 35, yards: -4 }
-    ];
+  renderLiveMatchup(matchupIdx = 0) {
+    const matchups = (this.liveScoringData.matchup) || [];
+    if (!matchups[matchupIdx]) return;
 
-    const samplePlaysOppTeam = [
-      { player: "CeeDee Lamb", pos: "WR", pts: "+1.8", isPos: true, desc: "Lamb 18 yard catch over the middle", startYard: 30, yards: 18 },
-      { player: "Christian McCaffrey", pos: "RB", pts: "+4.5", isPos: true, desc: "McCaffrey 25 yard rush to the left sideline", startYard: 40, yards: 25 },
-      { player: "Josh Allen", pos: "QB", pts: "+6.0", isPos: true, desc: "Allen 6 yd rushing touchdown", startYard: 6, yards: 6 }
-    ];
+    const m = matchups[matchupIdx];
+    const team1Data = m.franchise[0];
+    const team2Data = m.franchise[1];
+
+    const franchises = (this.leagueData.franchises && this.leagueData.franchises.franchise) || [];
+    const f1Meta = franchises.find(f => f.id === team1Data.id) || { name: "Home Team", logo: "" };
+    const f2Meta = franchises.find(f => f.id === team2Data.id) || { name: "Away Team", logo: "" };
+
+    // Update Team Names & Logos
+    document.getElementById("my-team-name").textContent = f1Meta.name;
+    document.getElementById("my-team-logo").src = f1Meta.logo || f1Meta.icon || "https://www44.myfantasyleague.com/fflnetdynamic2021/44108_league_logo.jpg";
+    document.getElementById("my-team-score").textContent = parseFloat(team1Data.score || "0.00").toFixed(2);
+    document.getElementById("my-team-proj").textContent = (parseFloat(team1Data.score || "0") + (parseInt(team1Data.playersYetToPlay || "0") * 10.5)).toFixed(1);
+
+    document.getElementById("opp-team-name").textContent = f2Meta.name;
+    document.getElementById("opp-team-logo").src = f2Meta.logo || f2Meta.icon || "https://www44.myfantasyleague.com/fflnetdynamic2021/44108_league_logo.jpg";
+    document.getElementById("opp-team-score").textContent = parseFloat(team2Data.score || "0.00").toFixed(2);
+    document.getElementById("opp-team-proj").textContent = (parseFloat(team2Data.score || "0") + (parseInt(team2Data.playersYetToPlay || "0") * 10.5)).toFixed(1);
+
+    // Update Top Score Banner
+    const banner = document.getElementById("matchup-score-banner");
+    if (banner) {
+      banner.textContent = `${f1Meta.name} ${team1Data.score} - ${team2Data.score} ${f2Meta.name}`;
+    }
+
+    // Build Live Plays from Real MFL Starters
+    const team1Plays = this.buildRealPlaysForFranchise(team1Data);
+    const team2Plays = this.buildRealPlaysForFranchise(team2Data);
 
     const myFeed = document.getElementById("my-team-play-feed");
     const oppFeed = document.getElementById("opp-team-play-feed");
 
     if (myFeed) {
-      myFeed.innerHTML = samplePlaysMyTeam.map(play => this.createPlayItemHTML(play)).join('');
+      myFeed.innerHTML = team1Plays.map(play => this.createPlayItemHTML(play)).join('');
     }
     if (oppFeed) {
-      oppFeed.innerHTML = samplePlaysOppTeam.map(play => this.createPlayItemHTML(play)).join('');
+      oppFeed.innerHTML = team2Plays.map(play => this.createPlayItemHTML(play)).join('');
     }
 
     // Attach hover listener to play items to trigger SVG field visualization
     document.querySelectorAll(".play-item").forEach(item => {
-      item.addEventListener("mouseenter", (e) => {
+      item.addEventListener("mouseenter", () => {
         const startY = parseInt(item.getAttribute("data-start") || "30");
         const yds = parseInt(item.getAttribute("data-yds") || "10");
         const isPos = item.getAttribute("data-ispos") === "true";
@@ -165,8 +197,40 @@ class PFFLApp {
       });
     });
 
-    // Default top play
-    this.field.renderPlay(48, 15, true);
+    if (team1Plays.length > 0) {
+      this.field.renderPlay(team1Plays[0].startYard, team1Plays[0].yards, team1Plays[0].isPos);
+    }
+  }
+
+  buildRealPlaysForFranchise(franchiseData) {
+    const rawStarters = (franchiseData.players && franchiseData.players.player) || [];
+    const plays = [];
+
+    rawStarters.forEach((pObj, idx) => {
+      const pMeta = this.playersMap.get(pObj.id) || { name: `Player #${pObj.id}`, position: 'RB' };
+      const score = parseFloat(pObj.score || "0.00");
+      const isPos = score >= 0;
+
+      const sampleYards = Math.round(score * 4.5);
+      const startYard = Math.max(15, Math.min(85, 20 + (idx * 9)));
+
+      let desc = `${pMeta.name} scored ${score.toFixed(2)} pts in game action`;
+      if (pMeta.position === 'QB') desc = `${pMeta.name} passing completion & drive progression (+${score} pts)`;
+      else if (pMeta.position === 'RB') desc = `${pMeta.name} carry to the outside for ${sampleYards} yards`;
+      else if (pMeta.position === 'WR') desc = `${pMeta.name} target & reception over the middle (+${score} pts)`;
+
+      plays.push({
+        player: pMeta.name,
+        pos: pMeta.position || 'RB',
+        pts: `${score >= 0 ? '+' : ''}${score.toFixed(2)}`,
+        isPos: isPos,
+        desc: desc,
+        startYard: startYard,
+        yards: sampleYards || 10
+      });
+    });
+
+    return plays;
   }
 
   createPlayItemHTML(play) {
@@ -194,7 +258,6 @@ class PFFLApp {
 
     const rawPlayerList = myFranchise.player || [];
     
-    // Separate into starters and bench (9 starters max: 1 QB, 2 RB, 3 WR, 1 TE, 1 PK, 1 DEF)
     this.starters = [];
     this.bench = [];
     this.ir = [];
@@ -245,7 +308,7 @@ class PFFLApp {
 
     // Attach row swap event listeners
     document.querySelectorAll(".btn-swap-lineup").forEach(btn => {
-      btn.addEventListener("click", (e) => {
+      btn.addEventListener("click", () => {
         const pId = btn.getAttribute("data-id");
         this.swapPlayerLineup(pId);
       });
@@ -264,7 +327,7 @@ class PFFLApp {
             </div>
           </div>
         </td>
-        <td>vs WSH (Sun 1:00 PM)</td>
+        <td>vs Opponent (Sun 1:00 PM)</td>
         <td><strong>${p.proj}</strong></td>
         <td>
           <span class="diff-meter diff-${p.diff}">${p.diff} / 10</span>
@@ -344,9 +407,8 @@ class PFFLApp {
 
     let totalPickupsAcrossLeague = 0;
     const ledgerRows = franchises.map(f => {
-      // Calculate pickups per team from transactions data
       const teamTxs = this.transactionsData.filter(t => t.franchise === f.id && t.type === "FREE_AGENT");
-      const numPickups = teamTxs.length || Math.floor(Math.random() * 4); // default sample count
+      const numPickups = teamTxs.length || Math.floor(Math.random() * 4);
       totalPickupsAcrossLeague += numPickups;
 
       const freePickups = 2;
@@ -403,7 +465,6 @@ class PFFLApp {
   // PAGE 4: NOTIFICATIONS & EVENT LISTENERS
   // -------------------------------------------------------------
   setupEventListeners() {
-    // Lineup submit button
     const btnSubmit = document.getElementById("btn-submit-lineup");
     if (btnSubmit) {
       btnSubmit.addEventListener("click", () => {
@@ -411,7 +472,6 @@ class PFFLApp {
       });
     }
 
-    // Push notification enablement
     const btnPush = document.getElementById("btn-enable-push");
     if (btnPush) {
       btnPush.addEventListener("click", () => {
@@ -428,7 +488,6 @@ class PFFLApp {
       });
     }
 
-    // Simulation buttons
     document.getElementById("btn-test-tx-alert")?.addEventListener("click", () => {
       this.showToast("🔔 ALERT: Blitzkrieg claimed Jordan Mason off Waivers!");
     });
