@@ -1038,7 +1038,7 @@ body.dark-theme {
     margin-bottom: 5px;
   }
   .banner-team.banner-left { grid-area: teamleft; }
-  .banner-team.banner-right { grid-area: teamright; }
+  .banner-team.banner-right { grid-area: teamright; flex-direction: column-reverse !important; }
   .banner-center-score { 
     grid-area: score; 
     width: 100%;
