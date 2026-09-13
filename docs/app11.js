@@ -498,40 +498,25 @@ class PFFLApp {
       this.loadRealHistoricalPlays();
     }
 
-    const myFeed = document.getElementById("my-team-play-feed");
-    const oppFeed = document.getElementById("opp-team-play-feed");
 
-    if (this.currentViewMode === "roster") {
-      if (myFeed) myFeed.innerHTML = team1Starters.map(p => this.createLineupTotalRowHTML(p, false)).join('');
-      if (oppFeed) oppFeed.innerHTML = team2Starters.map(p => this.createLineupTotalRowHTML(p, true)).join('');
-    } else {
-      if (myFeed) myFeed.innerHTML = this.createRunningStreamHTML(team1Starters, false);
-      if (oppFeed) oppFeed.innerHTML = this.createRunningStreamHTML(team2Starters, true);
-    }
+    const myStreamFeed = document.getElementById("my-team-stream-feed");
+    const oppStreamFeed = document.getElementById("opp-team-stream-feed");
+    const myRosterFeed = document.getElementById("my-team-roster-feed");
+    const oppRosterFeed = document.getElementById("opp-team-roster-feed");
 
-    document.querySelectorAll("#my-team-play-feed .play-item").forEach((item) => {
-      item.addEventListener("mouseenter", () => {
-        const pId = item.getAttribute("data-id");
-        const playerObj = team1Starters.find(p => p.id === pId) || team1Starters[0];
-        document.getElementById("current-play-summary").textContent = `Mapping field plays for ${playerObj.name} (${f1Meta.name})`;
-        this.field.renderPlayerLast5Plays(playerObj.last5Plays, false, playerObj);
-      });
-    });
+    if (myStreamFeed) myStreamFeed.innerHTML = this.createRunningStreamHTML(team1Starters, false);
+    if (oppStreamFeed) oppStreamFeed.innerHTML = this.createRunningStreamHTML(team2Starters, true);
+    if (myRosterFeed) myRosterFeed.innerHTML = team1Starters.map(p => this.createLineupTotalRowHTML(p, false)).join('');
+    if (oppRosterFeed) oppRosterFeed.innerHTML = team2Starters.map(p => this.createLineupTotalRowHTML(p, true)).join('');
 
-    document.querySelectorAll("#opp-team-play-feed .play-item").forEach((item) => {
-      item.addEventListener("mouseenter", () => {
-        const pId = item.getAttribute("data-id");
-        const playerObj = team2Starters.find(p => p.id === pId) || team2Starters[0];
-        document.getElementById("current-play-summary").textContent = `Mapping field plays for ${playerObj.name} (${f2Meta.name})`;
-        this.field.renderPlayerLast5Plays(playerObj.last5Plays, true, playerObj);
-      });
-    });
-
-    const team1Plays = this.getTeamAllPlays(team1Starters);
-    const top5Plays = team1Plays.slice(0, 5);
-    if (this.field && top5Plays.length > 0) {
-      document.getElementById("current-play-summary").textContent = `Mapping top 5 recent plays for ${f1Meta.name}`;
-      this.field.renderPlayerLast5Plays(top5Plays, false, null);
+    // Field Top 6 Plays Combos
+    let allPlays1 = this.getTeamAllPlays(team1Starters).map(p => ({...p, isOpponent: false}));
+    let allPlays2 = this.getTeamAllPlays(team2Starters).map(p => ({...p, isOpponent: true}));
+    
+    let combined = [...allPlays1, ...allPlays2].sort((a,b) => b.timeSortWeight - a.timeSortWeight).slice(0, 6);
+    document.getElementById("current-play-summary").textContent = `Displaying the last ${combined.length} scoring plays`;
+    if (this.field && this.field.renderCombinedPlays) {
+        this.field.renderCombinedPlays(combined);
     }
   }
 
