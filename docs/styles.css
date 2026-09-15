@@ -43,18 +43,7 @@ body.dark-theme {
   position: relative;
 }
 
-body.dark-theme::before {
-  content: "";
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-image: url("https://i.pinimg.com/originals/f7/f4/57/f7f45731501497876372b4d67a81c7b7.gif");
-  background-size: cover;
-  background-position: center top;
-  opacity: 0.85;
-  pointer-events: none;
-  z-index: -1;
-  filter: contrast(1.2) brightness(0.8);
-}
+
 
 /* Evil Theme Accents */
 .page-title {
@@ -78,15 +67,7 @@ body.dark-theme::before {
   overflow: hidden;
 }
 
-.team-panel::after, .settings-card::after, .trend-item::after {
-  content: "";
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 40px;
-  background-image: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwJSIgaGVpZ2h0PSI0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj4KICA8cGF0aCBmaWxsPSIjOGIwMDAwIiBkPSJNMCwwIFYxMCBRMiwyMCA1LDEwIFE4LDQgMTAsMTIgUTEyLDM1IDE1LDEwIFExOCw0IDIwLDggUTIzLDE4IDI1LDYgUTI4LDMgMzAsMTUgUTMyLDMwIDM1LDEwIFEzOCw0IDQwLDggUTQyLDIwIDQ1LDYgUTQ4LDQgNTAsMTIgUTUyLDM4IDU1LDggUTU4LDQgNjAsOCBRNjMsMTggNjUsNiBRNjgsNCA3MCwxNCBRNzIsMjUgNzUsOCBRNzgsNCA4MCwxMCBRODMsMjIgODUsNiBRODgsNCA5MCwxNCBROTIsMzUgOTUsOCBROTgsNCAxMDAsOCBWMCBaIi8+Cjwvc3ZnPg==");
-  pointer-events: none;
-  z-index: 9999; /* Force rendering on top of everything */
-}
+
 
 .active-matchup {
   border: 2px solid #8b0000;

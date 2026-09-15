@@ -45,7 +45,100 @@ class PFFLApp {
     this.renderAll();
     this.setupEventListeners();
     this.populateSettings();
+    this.startPsychoTheme();
     this.startLivePolling();
+  }
+
+  startPsychoTheme() {
+    // 1. Dynamic Lightning Storm Engine
+    const stormDiv = document.createElement('div');
+    stormDiv.id = 'storm-overlay';
+    stormDiv.style.position = 'fixed';
+    stormDiv.style.top = '0'; stormDiv.style.left = '0'; stormDiv.style.right = '0'; stormDiv.style.bottom = '0';
+    // Append a random timestamp query to the GIF URL each time it fires to force the browser to restart the GIF!
+    stormDiv.style.backgroundImage = 'url("https://i.pinimg.com/originals/f7/f4/57/f7f45731501497876372b4d67a81c7b7.gif")';
+    stormDiv.style.backgroundSize = 'cover';
+    stormDiv.style.backgroundPosition = 'center top';
+    stormDiv.style.zIndex = '-1';
+    stormDiv.style.pointerEvents = 'none';
+    stormDiv.style.opacity = '0.05';
+    stormDiv.style.filter = 'contrast(1.2) brightness(0.8)';
+    stormDiv.style.transition = 'opacity 0.3s ease-in-out';
+    document.body.appendChild(stormDiv);
+
+    const triggerLightning = () => {
+        // Randomly restart the GIF to shake it up so it doesn't just look like a loop
+        if (Math.random() > 0.5) {
+            stormDiv.style.backgroundImage = 'none';
+            setTimeout(() => {
+                stormDiv.style.backgroundImage = 'url("https://i.pinimg.com/originals/f7/f4/57/f7f45731501497876372b4d67a81c7b7.gif?t=' + Date.now() + '")';
+            }, 50);
+        }
+        
+        stormDiv.style.opacity = (Math.random() * 0.6 + 0.4).toString(); // 0.4 to 1.0 burst
+        
+        setTimeout(() => {
+            stormDiv.style.opacity = '0.05'; // fade back to dark
+            setTimeout(triggerLightning, Math.random() * 9000 + 3000); // Wait 3-12 seconds for next burst
+        }, Math.random() * 1500 + 500); // Burst lasts 0.5 - 2 seconds
+    };
+    // Initial burst delay
+    setTimeout(triggerLightning, 2000);
+    
+    // 2. Dynamic Dripping Blood Engine
+    // We will call this periodically to ensure any newly rendered panels get the blood treatment
+    setInterval(() => this.applyBloodDrips(), 2000);
+  }
+
+  applyBloodDrips() {
+    document.querySelectorAll('.team-panel, .settings-card, .trend-item').forEach(panel => {
+        if (panel.hasAttribute('data-blood-applied')) return;
+        panel.setAttribute('data-blood-applied', 'true');
+        
+        // Ensure panel can contain absolute drips
+        if (getComputedStyle(panel).position === 'static') {
+            panel.style.position = 'relative';
+        }
+        
+        // Create 2-4 drips per side
+        const sides = ['left', 'right'];
+        sides.forEach(side => {
+            const numDrips = Math.floor(Math.random() * 3) + 2;
+            for (let i = 0; i < numDrips; i++) {
+                const drip = document.createElement('div');
+                drip.style.position = 'absolute';
+                drip.style.top = (Math.random() * 20 - 10) + 'px'; // Start near top edge
+                
+                if (side === 'left') {
+                    drip.style.left = (Math.random() * 4) + 'px'; // hugging left wall
+                } else {
+                    drip.style.right = (Math.random() * 4) + 'px'; // hugging right wall
+                }
+
+                drip.style.width = (Math.random() * 5 + 3) + 'px';
+                drip.style.height = (Math.random() * 10 + 5) + 'px';
+                drip.style.backgroundColor = '#7a0000';
+                drip.style.borderRadius = '0 0 50% 50%';
+                drip.style.opacity = '0.9';
+                drip.style.boxShadow = 'inset -1px -2px 4px rgba(0,0,0,0.6)';
+                drip.style.zIndex = '9999';
+                
+                // Randomly assign a very slow transition duration
+                const duration = Math.random() * 15 + 10; // 10 to 25 seconds!
+                drip.style.transition = `top ${duration}s ease-in, height ${duration}s ease-in`;
+                
+                panel.appendChild(drip);
+
+                // Trigger the slow drip animation shortly after creation
+                setTimeout(() => {
+                    // Drip crawls down the side
+                    drip.style.top = (parseInt(drip.style.top) + Math.random() * 80 + 40) + 'px';
+                    // And elongates slightly as it falls
+                    drip.style.height = (parseInt(drip.style.height) + Math.random() * 20 + 10) + 'px';
+                }, Math.random() * 3000 + 500);
+            }
+        });
+    });
   }
   
   populateSettings() {
