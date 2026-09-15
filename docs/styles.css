@@ -31,13 +31,25 @@
   padding: 0;
 }
 
+@keyframes lightningFlash {
+  0% { background-color: var(--bg-dark); }
+  2% { background-color: rgba(60, 65, 80, 0.8); }
+  4% { background-color: var(--bg-dark); }
+  6% { background-color: rgba(90, 95, 120, 0.9); }
+  8% { background-color: var(--bg-dark); }
+  100% { background-color: var(--bg-dark); }
+}
+
 body.dark-theme {
   background-color: var(--bg-dark);
+  background-image: radial-gradient(circle at 50% -20%, rgba(50, 0, 15, 0.5) 0%, transparent 60%);
   color: var(--text-main);
   font-family: var(--font-main);
   min-height: 100vh;
   line-height: 1.4;
   overflow-x: hidden;
+  animation: lightningFlash 15s infinite;
+  animation-delay: 5s;
 }
 
 /* Header & Navbar */
