@@ -99,108 +99,132 @@ class PFFLApp {
             panel.style.position = 'relative';
         }
 
-        const numColumns = 30; // High resolution jagged ceiling
+        // Push all panel content above the blood
+        Array.from(panel.children).forEach(child => {
+            if (getComputedStyle(child).position === 'static') {
+                child.style.position = 'relative';
+            }
+            if (!child.style.zIndex || child.style.zIndex < 2) {
+                child.style.zIndex = '2';
+            }
+        });
+
+        // Dedicated blood canvas sitting behind content
+        const canvas = document.createElement('div');
+        canvas.style.position = 'absolute';
+        canvas.style.top = '0'; canvas.style.left = '0';
+        canvas.style.width = '100%'; canvas.style.height = '100%';
+        canvas.style.zIndex = '0'; // Behind content
+        canvas.style.pointerEvents = 'none';
+        canvas.style.overflow = 'hidden';
+        panel.insertBefore(canvas, panel.firstChild);
+
         const columns = [];
+        const numBlobs = 18; 
         
-        for (let i = 0; i < numColumns; i++) {
-            const col = document.createElement('div');
-            col.style.position = 'absolute';
-            col.style.top = '-2px'; // Hide top edge clipping
-            col.style.left = `${(i / numColumns) * 100}%`;
-            col.style.width = `${(100 / numColumns) + 0.5}%`; // Slight overlap to prevent gaps
-            col.style.height = '0px';
-            col.style.backgroundColor = '#7a0000';
-            col.style.opacity = '0.9';
-            col.style.zIndex = '9999';
-            col.style.borderRadius = '0 0 50% 50%';
-            col.style.boxShadow = 'inset -1px -2px 4px rgba(0,0,0,0.6)';
-            col.style.transition = 'height 3s ease-in-out';
+        for (let i = 0; i < numBlobs; i++) {
+            const blob = document.createElement('div');
+            blob.style.position = 'absolute';
+            blob.style.top = '-2px';
             
-            panel.appendChild(col);
-            columns.push(col);
-
-            // Calculate distance from the nearest edge (0 to 14)
-            const distFromEdge = Math.min(i, numColumns - 1 - i);
+            // Randomly distribute, heavily favoring corners
+            let leftPos;
+            if (i < 4) leftPos = Math.random() * 10; // Left corner bunch
+            else if (i >= 4 && i < 8) leftPos = 80 + (Math.random() * 15); // Right corner bunch
+            else leftPos = Math.random() * 100; // Center spread
             
-            // Corners get deep pools (15-35px), Center gets shallow pools (3-12px)
-            let baseHeight = distFromEdge < 5 ? 25 : 8;
-            let randomVar = (Math.random() * 15) - 5; // -5 to +10 variance
-            let targetHeight = Math.max(3, baseHeight + randomVar);
+            blob.style.left = `${leftPos}%`;
+            blob.style.width = `${Math.random() * 15 + 8}%`; // Irregular wide blobs
+            blob.style.height = '0px';
+            blob.style.backgroundColor = '#7a0000';
+            
+            // Asymmetrical fluid borders
+            const r1 = Math.random() * 40 + 30;
+            const r2 = Math.random() * 40 + 30;
+            const r3 = Math.random() * 40 + 30;
+            const r4 = Math.random() * 40 + 30;
+            blob.style.borderRadius = `0 0 ${r1}% ${r2}% / 0 0 ${r3}% ${r4}%`;
+            
+            blob.style.transition = 'height 3s ease-in-out';
+            
+            canvas.appendChild(blob);
+            columns.push(blob);
 
-            // Stagger animation: Outer columns start immediately, inner columns wait
-            // Creates the creeping effect from corners to center
-            const delay = distFromEdge * 250 + (Math.random() * 500); 
+            // Deeper pools in corners
+            const distFromEdge = Math.min(leftPos, 100 - leftPos); 
+            let baseHeight = distFromEdge < 25 ? 40 : 15;
+            let targetHeight = Math.max(5, baseHeight + (Math.random() * 30 - 15));
+
+            // Corners pool first, center fills in later
+            const delay = distFromEdge * 40 + (Math.random() * 1000);
             
             setTimeout(() => {
-                col.style.height = targetHeight + 'px';
-                col.dataset.baseHeight = targetHeight; // Store for droplet physics
+                blob.style.height = targetHeight + 'px';
+                blob.dataset.baseHeight = targetHeight;
             }, delay);
         }
 
-        // Phase 3: The "Break Off" Droplet Physics
         const spawnDroplet = () => {
-            if (!document.body.contains(panel)) return;
+            if (!document.body.contains(canvas)) return;
 
-            // Pick a random column to drip from (favor corners slightly, but allow center)
-            const colIndex = Math.floor(Math.random() * numColumns);
-            const anchorCol = columns[colIndex];
-            if (!anchorCol || !anchorCol.dataset.baseHeight) {
+            // Pick a random blob to drip from
+            const anchor = columns[Math.floor(Math.random() * columns.length)];
+            if (!anchor || !anchor.dataset.baseHeight) {
                 setTimeout(spawnDroplet, 1000);
                 return;
             }
 
-            const baseH = parseFloat(anchorCol.dataset.baseHeight);
+            const baseH = parseFloat(anchor.dataset.baseHeight);
             
-            // 1. Surface Tension: The ceiling column stretches down first
-            anchorCol.style.transition = 'height 1s ease-in';
-            anchorCol.style.height = (baseH + 8) + 'px';
+            // Surface tension buildup
+            anchor.style.transition = 'height 1.5s ease-in';
+            anchor.style.height = (baseH + 15) + 'px';
 
             setTimeout(() => {
-                // 2. The Snap: The ceiling snaps back, and the droplet spawns
-                anchorCol.style.transition = 'height 0.3s ease-out';
-                anchorCol.style.height = baseH + 'px'; // "Red stays there"
+                // Snap back
+                anchor.style.transition = 'height 0.4s ease-out';
+                anchor.style.height = baseH + 'px';
 
-                // 3. The Droplet: Breaks off and falls
+                // Droplet breaks off
                 const droplet = document.createElement('div');
                 droplet.style.position = 'absolute';
-                droplet.style.top = (baseH + 5) + 'px'; // Starts exactly where it snapped
-                droplet.style.left = anchorCol.style.left;
-                droplet.style.width = anchorCol.style.width;
-                droplet.style.height = (Math.random() * 10 + 10) + 'px'; // Droplet size
-                droplet.style.backgroundColor = '#7a0000';
-                droplet.style.opacity = '0.9';
-                droplet.style.zIndex = '9998';
-                droplet.style.borderRadius = '50%';
-                droplet.style.boxShadow = 'inset -1px -2px 4px rgba(0,0,0,0.6)';
+                droplet.style.top = (baseH + 10) + 'px';
                 
-                const duration = Math.random() * 8 + 6; // 6 to 14 seconds to hit the floor
+                const anchorLeft = parseFloat(anchor.style.left);
+                const anchorWidth = parseFloat(anchor.style.width);
+                const dropWidth = Math.random() * 2 + 1; // 1-3% wide streak
+                droplet.style.left = (anchorLeft + (anchorWidth/2) - (dropWidth/2)) + '%';
+                droplet.style.width = dropWidth + '%';
+                droplet.style.height = (Math.random() * 15 + 10) + 'px';
+                droplet.style.backgroundColor = '#7a0000';
+                droplet.style.borderRadius = '50%';
+                
+                // Fall physics
+                const duration = Math.random() * 6 + 4; // 4 to 10 seconds
                 droplet.style.transition = `top ${duration}s linear, height ${duration}s ease-in, opacity 0.5s`;
                 
-                panel.appendChild(droplet);
+                canvas.appendChild(droplet);
 
                 setTimeout(() => {
-                    droplet.style.top = '100%'; // Falls to bottom
-                    droplet.style.height = (parseFloat(droplet.style.height) + 20) + 'px'; // Stretches dynamically as it falls
+                    droplet.style.top = '100%'; // Hit floor
+                    droplet.style.height = (parseFloat(droplet.style.height) + 50) + 'px'; // Stretch drastically
                 }, 50);
 
-                // Cleanup droplet
                 setTimeout(() => {
-                    if (panel.contains(droplet)) {
+                    if (canvas.contains(droplet)) {
                         droplet.style.opacity = '0';
                         setTimeout(() => droplet.remove(), 500);
                     }
                 }, duration * 1000);
 
-            }, 1000); // 1s tension
+            }, 1500);
 
-            // Infinite loop
-            setTimeout(spawnDroplet, Math.random() * 5000 + 3000);
+            setTimeout(spawnDroplet, Math.random() * 3000 + 1500);
         };
 
-        // Start infinite drips after the pool finishes creeping to the center
         setTimeout(() => {
             spawnDroplet();
-            setTimeout(spawnDroplet, 4000);
+            setTimeout(spawnDroplet, 2500);
         }, 5000);
     });
   }
