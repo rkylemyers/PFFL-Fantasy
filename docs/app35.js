@@ -86,12 +86,28 @@ class PFFLApp {
 
       const btnNotif = document.getElementById("btn-enable-notifications");
       if (btnNotif) {
-        if (Notification.permission === "granted") btnNotif.style.opacity = "0.5";
+        try { if (window.Notification && Notification.permission === "granted") btnNotif.style.opacity = "0.5"; } catch(e) {}
         btnNotif.addEventListener("click", () => {
 
             const showMsg = (msg) => {
                 const el = document.getElementById("gh-delay-text");
                 if(el) { el.textContent = msg; el.style.color = "var(--accent-yellow)"; setTimeout(()=> {if(typeof checkGHDelay === 'function') checkGHDelay();}, 7000); }
+                
+                // Backup visible toast
+                const toast = document.createElement("div");
+                toast.textContent = msg;
+                toast.style.position = "fixed";
+                toast.style.bottom = "20px";
+                toast.style.left = "50%";
+                toast.style.transform = "translateX(-50%)";
+                toast.style.background = "#ff9100";
+                toast.style.color = "#000";
+                toast.style.padding = "10px 20px";
+                toast.style.borderRadius = "20px";
+                toast.style.zIndex = "99999";
+                toast.style.fontWeight = "bold";
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 4000);
             };
             
             try {
