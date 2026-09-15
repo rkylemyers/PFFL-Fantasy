@@ -95,49 +95,100 @@ class PFFLApp {
         if (panel.hasAttribute('data-blood-applied')) return;
         panel.setAttribute('data-blood-applied', 'true');
         
-        // Ensure panel can contain absolute drips
         if (getComputedStyle(panel).position === 'static') {
             panel.style.position = 'relative';
         }
-        
-        // Create 2-4 drips per side
-        const sides = ['left', 'right'];
-        sides.forEach(side => {
-            const numDrips = Math.floor(Math.random() * 3) + 2;
-            for (let i = 0; i < numDrips; i++) {
-                const drip = document.createElement('div');
-                drip.style.position = 'absolute';
-                drip.style.top = (Math.random() * 20 - 10) + 'px'; // Start near top edge
-                
-                if (side === 'left') {
-                    drip.style.left = (Math.random() * 4) + 'px'; // hugging left wall
-                } else {
-                    drip.style.right = (Math.random() * 4) + 'px'; // hugging right wall
-                }
 
-                drip.style.width = (Math.random() * 5 + 3) + 'px';
-                drip.style.height = (Math.random() * 10 + 5) + 'px';
-                drip.style.backgroundColor = '#7a0000';
-                drip.style.borderRadius = '0 0 50% 50%';
-                drip.style.opacity = '0.9';
-                drip.style.boxShadow = 'inset -1px -2px 4px rgba(0,0,0,0.6)';
-                drip.style.zIndex = '9999';
-                
-                // Randomly assign a very slow transition duration
-                const duration = Math.random() * 15 + 10; // 10 to 25 seconds!
-                drip.style.transition = `top ${duration}s ease-in, height ${duration}s ease-in`;
-                
-                panel.appendChild(drip);
+        // Phase 1: Blood pools across the entire top edge
+        const topPool = document.createElement('div');
+        topPool.style.position = 'absolute';
+        topPool.style.top = '0';
+        topPool.style.left = '0';
+        topPool.style.width = '100%';
+        topPool.style.height = '0px';
+        topPool.style.backgroundColor = '#7a0000';
+        topPool.style.opacity = '0.9';
+        topPool.style.zIndex = '9999';
+        topPool.style.transition = 'height 3s ease-in-out';
+        topPool.style.boxShadow = 'inset 0px -2px 4px rgba(0,0,0,0.6)';
+        panel.appendChild(topPool);
 
-                // Trigger the slow drip animation shortly after creation
+        setTimeout(() => { topPool.style.height = '6px'; }, 100);
+
+        // Phase 2: Corners fill up randomly
+        setTimeout(() => {
+            ['left', 'right'].forEach(side => {
+                const corner = document.createElement('div');
+                corner.style.position = 'absolute';
+                corner.style.top = '0';
+                corner.style[side] = '0';
+                corner.style.width = '0px';
+                corner.style.height = '0px';
+                corner.style.backgroundColor = '#7a0000';
+                corner.style.opacity = '0.9';
+                corner.style.zIndex = '9999';
+                corner.style.borderRadius = side === 'left' ? '0 0 100% 0' : '0 0 0 100%';
+                corner.style.transition = 'width 2s ease-in-out, height 2s ease-in-out';
+                panel.appendChild(corner);
+
                 setTimeout(() => {
-                    // Drip crawls down the side
-                    drip.style.top = (parseInt(drip.style.top) + Math.random() * 80 + 40) + 'px';
-                    // And elongates slightly as it falls
-                    drip.style.height = (parseInt(drip.style.height) + Math.random() * 20 + 10) + 'px';
-                }, Math.random() * 3000 + 500);
+                    corner.style.width = (Math.random() * 30 + 15) + 'px';
+                    corner.style.height = (Math.random() * 15 + 10) + 'px';
+                }, 100);
+            });
+        }, 3000);
+
+        // Phase 3: Infinite continuous dripping all the way down
+        const spawnDrip = () => {
+            if (!document.body.contains(panel)) return; // Cleanup if panel was removed
+
+            const side = Math.random() > 0.5 ? 'left' : 'right';
+            const drip = document.createElement('div');
+            drip.style.position = 'absolute';
+            drip.style.top = '10px';
+            
+            if (side === 'left') {
+                drip.style.left = (Math.random() * 8) + 'px';
+            } else {
+                drip.style.right = (Math.random() * 8) + 'px';
             }
-        });
+
+            drip.style.width = (Math.random() * 4 + 3) + 'px';
+            drip.style.height = (Math.random() * 15 + 10) + 'px';
+            drip.style.backgroundColor = '#7a0000';
+            drip.style.borderRadius = '0 0 50% 50%';
+            drip.style.opacity = '0.9';
+            drip.style.boxShadow = 'inset -1px -2px 4px rgba(0,0,0,0.6)';
+            drip.style.zIndex = '9998'; // Under corners
+            
+            const duration = Math.random() * 12 + 8; // 8 to 20 seconds to fall to the very bottom
+            drip.style.transition = `top ${duration}s linear, height ${duration}s ease-in, opacity 0.5s`;
+            
+            panel.appendChild(drip);
+
+            // Start fall to 100% (bottom of panel)
+            setTimeout(() => {
+                drip.style.top = '100%'; 
+                drip.style.height = (parseInt(drip.style.height) + 25) + 'px'; // Stretch as it falls
+            }, 100);
+
+            // Cleanup when it hits bottom
+            setTimeout(() => {
+                if (panel.contains(drip)) {
+                    drip.style.opacity = '0';
+                    setTimeout(() => drip.remove(), 500);
+                }
+            }, duration * 1000);
+
+            // Schedule the next infinite drip on this panel
+            setTimeout(spawnDrip, Math.random() * 6000 + 2000); // New drip every 2-8 seconds
+        };
+
+        // Start infinite drips shortly after corner pooling
+        setTimeout(() => {
+            spawnDrip();
+            setTimeout(spawnDrip, 3000); // Start second independent loop for chaos
+        }, 5000);
     });
   }
   
