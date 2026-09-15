@@ -50,7 +50,7 @@ body.dark-theme::before {
   background-image: url("https://i.pinimg.com/originals/f7/f4/57/f7f45731501497876372b4d67a81c7b7.gif");
   background-size: cover;
   background-position: center top;
-  opacity: 0.18;
+  opacity: 0.40;
   pointer-events: none;
   z-index: -1;
   mix-blend-mode: lighten;
@@ -70,8 +70,10 @@ body.dark-theme::before {
 }
 
 .team-panel, .settings-card, .trend-item {
-  background: linear-gradient(145deg, #0f1218 0%, #07090c 100%);
-  border: 1px solid rgba(139, 0, 0, 0.2);
+  background: linear-gradient(145deg, rgba(15, 18, 24, 0.55) 0%, rgba(7, 9, 12, 0.65) 100%);
+  border: 1px solid rgba(139, 0, 0, 0.3);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
 }
 
 .active-matchup {
@@ -84,7 +86,7 @@ body.dark-theme::before {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(21, 25, 34, 0.85);
+  background: rgba(21, 25, 34, 0.5);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-color);
   padding: 0.5rem 1.25rem;
