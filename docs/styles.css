@@ -82,10 +82,10 @@ body.dark-theme::before {
   content: "";
   position: absolute;
   top: 0; left: 0; right: 0;
-  height: 25px;
-  background-image: url("data:image/svg+xml;utf8,%3Csvg width='100%25' height='25' xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='none'%3E%3Cpath fill='%237a0000' opacity='0.9' d='M0,0 V5 Q2,15 5,5 Q8,2 10,8 Q12,25 15,6 Q18,2 20,5 Q23,12 25,4 Q28,2 30,10 Q32,22 35,7 Q38,2 40,6 Q42,15 45,4 Q48,2 50,8 Q52,28 55,5 Q58,2 60,6 Q63,14 65,4 Q68,2 70,10 Q72,20 75,5 Q78,2 80,6 Q83,16 85,4 Q88,2 90,9 Q92,25 95,6 Q98,2 100,5 V0 Z'/%3E%3C/svg%3E");
+  height: 40px;
+  background-image: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwJSIgaGVpZ2h0PSI0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj4KICA8cGF0aCBmaWxsPSIjOGIwMDAwIiBkPSJNMCwwIFYxMCBRMiwyMCA1LDEwIFE4LDQgMTAsMTIgUTEyLDM1IDE1LDEwIFExOCw0IDIwLDggUTIzLDE4IDI1LDYgUTI4LDMgMzAsMTUgUTMyLDMwIDM1LDEwIFEzOCw0IDQwLDggUTQyLDIwIDQ1LDYgUTQ4LDQgNTAsMTIgUTUyLDM4IDU1LDggUTU4LDQgNjAsOCBRNjMsMTggNjUsNiBRNjgsNCA3MCwxNCBRNzIsMjUgNzUsOCBRNzgsNCA4MCwxMCBRODMsMjIgODUsNiBRODgsNCA5MCwxNCBROTIsMzUgOTUsOCBROTgsNCAxMDAsOCBWMCBaIi8+Cjwvc3ZnPg==");
   pointer-events: none;
-  z-index: 10;
+  z-index: 9999; /* Force rendering on top of everything */
 }
 
 .active-matchup {
