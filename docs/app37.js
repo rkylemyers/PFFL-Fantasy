@@ -122,7 +122,7 @@ class PFFLApp {
                 }
                 
                 const fireTestAlert = () => {
-                    alert("Debug: Button Clicked! Perm is: " + Notification.permission);
+                    
                     showMsg("Firing Test Push...");
                     btnNotif.style.opacity = "0.5";
                     const title = "🚨 L.McConkey (+10.5 pts)";
@@ -133,22 +133,25 @@ class PFFLApp {
                         vibrate: [200, 100, 200]
                     };
                     if ('serviceWorker' in navigator) {
-                        navigator.serviceWorker.ready.then(reg => {
+                        navigator.serviceWorker.getRegistration().then(reg => {
                             if (reg) {
-                                alert("Debug: Found SW. Firing showNotification...");
                                 reg.showNotification(title, opts).then(() => {
-                                    alert("Debug: SW Push Promise Resolved!");
+                                    showMsg("Touchdown Alert Sent!");
                                 }).catch(e => {
-                                    alert("Debug: SW Push Error: " + e.message);
+                                    showMsg("SW Push Error: " + e.message);
                                 });
                             } else {
-                                alert("Debug: SW is ready but reg is null!");
+                                showMsg("SW not registered yet. Retrying...");
+                                navigator.serviceWorker.register('sw.js').then(r => {
+                                    r.showNotification(title, opts);
+                                    showMsg("Sent after forced registration!");
+                                }).catch(e => showMsg("SW Reg Error: " + e.message));
                             }
                         }).catch(e => {
-                            alert("Debug: SW Ready Promise Error: " + e.message);
+                            showMsg("SW GetReg Error: " + e.message);
                         });
                     } else {
-                        alert("Debug: No serviceWorker in navigator.");
+                        showMsg("No ServiceWorker in this browser.");
                     }
                 };
 
@@ -561,12 +564,13 @@ class PFFLApp {
                 if (this.team1Starters && this.team1Starters.includes(match) && Notification.permission === "granted") {
                     const title = `🚨 ${match.name} (+${fpts.toFixed(1)} pts)`;
                     const body = play.text;
+                    const iconUrl = window.location.origin + window.location.pathname.replace('index.html', '') + "favicon.png";
                     if ('serviceWorker' in navigator) {
-                        navigator.serviceWorker.ready.then(reg => {
-                            reg.showNotification(title, { body: body, icon: "favicon.png", badge: "favicon.png" });
+                        navigator.serviceWorker.getRegistration().then(reg => {
+                            if (reg) reg.showNotification(title, { body: body, icon: iconUrl, badge: iconUrl });
                         }).catch(e => console.warn("SW Error:", e));
                     } else {
-                        try { new Notification(title, { body: body, icon: "favicon.png" }); } catch(e) {}
+                        try { new Notification(title, { body: body, icon: iconUrl }); } catch(e) {}
                     }
                 }
 
