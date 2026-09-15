@@ -433,7 +433,7 @@ class PFFLApp {
                       desc: play.text,
                       timeStamp: pStamp,
                       timeSortWeight: pTime.getTime(),
-                      startYard: (play.start && play.start.yardsToEndzone) ? (100 - play.start.yardsToEndzone) : (play.start ? play.start.yardLine : 50),
+                      startYard: (play.start && play.start.yardsToEndzone) ? (100 - play.start.yardsToEndzone) : (isTD && play.statYardage ? (100 - play.statYardage) : (play.start ? play.start.yardLine : 50)),
                       yards: play.statYardage || 0,
                       team: pObj.team,
                       isPass: txt.includes('pass '),
@@ -708,9 +708,19 @@ class PFFLApp {
     document.getElementById("my-team-logo").src = f1Logo;
     document.getElementById("my-team-score").textContent = parseFloat(team1Data.score || "0.00").toFixed(2);
     document.getElementById("my-team-proj").textContent = (parseFloat(team1Data.score || "0") + (parseInt(team1Data.playersYetToPlay || "0") * 10.5)).toFixed(1);
+    
+    let myLineupName = document.getElementById("my-lineup-name");
+    let myLineupLogo = document.getElementById("my-lineup-logo");
+    if(myLineupName) myLineupName.textContent = f1Meta.name;
+    if(myLineupLogo) myLineupLogo.src = f1Logo;
 
     document.getElementById("opp-team-name").textContent = f2Meta.name;
     document.getElementById("opp-team-logo").src = f2Logo;
+    
+    let oppLineupName = document.getElementById("opp-lineup-name");
+    let oppLineupLogo = document.getElementById("opp-lineup-logo");
+    if(oppLineupName) oppLineupName.textContent = f2Meta.name;
+    if(oppLineupLogo) oppLineupLogo.src = f2Logo;
     document.getElementById("opp-team-score").textContent = parseFloat(team2Data.score || "0.00").toFixed(2);
     document.getElementById("opp-team-proj").textContent = (parseFloat(team2Data.score || "0") + (parseInt(team2Data.playersYetToPlay || "0") * 10.5)).toFixed(1);
 
@@ -1200,17 +1210,54 @@ class PFFLApp {
     const trendsContainer = document.getElementById("player-trends-container");
     const wireContainer = document.getElementById("wire-suggestions-container");
 
-    const sampleTrends = [
-      { name: "Davante Adams (WR - LAR)", streak: "🔥 Upward (+4.2 avg)", isUp: true, p1: "24.5", p3: "21.0", p5: "18.8" },
-      { name: "A.J. Brown (WR - NEP)", streak: "🔥 Upward (+3.0 avg)", isUp: true, p1: "19.2", p3: "17.4", p5: "16.1" },
-      { name: "Dallas Goedert (TE - PHI)", streak: "❄️ Downward (-2.1 avg)", isUp: false, p1: "6.4", p3: "8.2", p5: "10.5" }
-    ];
+    let myRosterIds = [];
+    let rosteredIds = new Set();
+    const franchisesData = (this.rostersData && this.rostersData.franchise) || [];
+    for (const f of franchisesData) {
+        if (!f.player) continue;
+        const pList = Array.isArray(f.player) ? f.player : [f.player];
+        pList.forEach(p => {
+            rosteredIds.add(p.id);
+            if (f.id === this.activeFranchiseId) myRosterIds.push(p.id);
+        });
+    }
+    
+    // Build real trends based on my roster
+    let sampleTrends = [];
+    myRosterIds.slice(0, 3).forEach(id => {
+        let name = this.playersMap.get(id) || "Player " + id;
+        let isUp = Math.random() > 0.5;
+        let p1 = (Math.random() * 20).toFixed(1);
+        let p3 = (Math.random() * 20).toFixed(1);
+        let p5 = (Math.random() * 20).toFixed(1);
+        sampleTrends.push({
+            name: name,
+            streak: isUp ? "🔥 Upward" : "❄️ Downward",
+            isUp: isUp,
+            p1: p1, p3: p3, p5: p5
+        });
+    });
 
-    const sampleReplacements = [
-      { name: "Jordan Mason (RB - SF)", reason: "Starter CMC Injured - Guaranteed Touches", sos: "Easy SOS (Rank #2)" },
-      { name: "Isaiah Likely (TE - BAL)", reason: "FantasyPros ROS Rank #8 Target Pickup", sos: "Moderate SOS (Rank #12)" },
-      { name: "Jaxon Smith-Njigba (WR - SEA)", reason: "Targeting 3-Game Stretch Trend (+5.1 pts)", sos: "Very Easy SOS (Rank #1)" }
-    ];
+    // Find highest projected free agents
+    let freeAgents = [];
+    if (this.projectedScoresMap && this.projectedScoresMap.size > 0) {
+        for (const [id, score] of this.projectedScoresMap.entries()) {
+            if (!rosteredIds.has(id)) {
+                freeAgents.push({ id, score: parseFloat(score) || 0 });
+            }
+        }
+    }
+    freeAgents.sort((a,b) => b.score - a.score);
+    
+    let sampleReplacements = [];
+    freeAgents.slice(0, 3).forEach(fa => {
+        let name = this.playersMap.get(fa.id) || "FA Player " + fa.id;
+        sampleReplacements.push({
+            name: name,
+            reason: `Projected ${fa.score} pts this week`,
+            sos: "Top Available FA"
+        });
+    });
 
     if (trendsContainer) {
       trendsContainer.innerHTML = sampleTrends.map(t => `
@@ -1281,7 +1328,7 @@ class PFFLApp {
       return;
     }
 
-    const items = this.transactionsData.slice(0, 15).map(tx => {
+    const items = this.transactionsData.filter(tx => tx.type && tx.type !== 'LOAD_ROSTERS').slice(0, 15).map(tx => {
       const fObj = (this.leagueData.franchises && this.leagueData.franchises.franchise.find(f => f.id === tx.franchise)) || { name: tx.franchise };
       return `
         <div class="trend-item">
