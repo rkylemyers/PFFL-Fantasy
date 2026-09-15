@@ -50,10 +50,10 @@ body.dark-theme::before {
   background-image: url("https://i.pinimg.com/originals/f7/f4/57/f7f45731501497876372b4d67a81c7b7.gif");
   background-size: cover;
   background-position: center top;
-  opacity: 0.40;
+  opacity: 0.85;
   pointer-events: none;
   z-index: -1;
-  mix-blend-mode: lighten;
+  filter: contrast(1.2) brightness(0.8);
 }
 
 /* Evil Theme Accents */
@@ -70,10 +70,22 @@ body.dark-theme::before {
 }
 
 .team-panel, .settings-card, .trend-item {
-  background: linear-gradient(145deg, rgba(15, 18, 24, 0.55) 0%, rgba(7, 9, 12, 0.65) 100%);
+  position: relative;
+  background: linear-gradient(145deg, rgba(15, 18, 24, 0.45) 0%, rgba(7, 9, 12, 0.55) 100%);
   border: 1px solid rgba(139, 0, 0, 0.3);
   backdrop-filter: blur(6px);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.team-panel::after, .settings-card::after, .trend-item::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 25px;
+  background-image: url("data:image/svg+xml;utf8,%3Csvg width='100%25' height='25' xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='none'%3E%3Cpath fill='%237a0000' opacity='0.9' d='M0,0 V5 Q2,15 5,5 Q8,2 10,8 Q12,25 15,6 Q18,2 20,5 Q23,12 25,4 Q28,2 30,10 Q32,22 35,7 Q38,2 40,6 Q42,15 45,4 Q48,2 50,8 Q52,28 55,5 Q58,2 60,6 Q63,14 65,4 Q68,2 70,10 Q72,20 75,5 Q78,2 80,6 Q83,16 85,4 Q88,2 90,9 Q92,25 95,6 Q98,2 100,5 V0 Z'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 10;
 }
 
 .active-matchup {
