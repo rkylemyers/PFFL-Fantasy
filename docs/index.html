@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260913_20">
+  <link rel="stylesheet" href="styles.css?v=20260913_21">
 </head>
 <body class="dark-theme">
   <!-- Top Global Navigation Bar -->
@@ -366,55 +366,111 @@
     <section id="tab-notifications" class="tab-page">
       <div class="page-action-header">
         <div>
-          <h2 class="page-title">Device Notifications & MFL Sync Settings</h2>
-          <p class="page-subtitle">Configure real-time push alerts for macOS, Android, and web browsers.</p>
+          <h2 class="page-title">Command Center Settings</h2>
+          <p class="page-subtitle">Configure your active franchise, push notification preferences, and application theme.</p>
         </div>
       </div>
 
-      <div class="settings-grid">
+      <div class="settings-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+        
+        <!-- FRANCHISE LOGIN / AUTH CARD -->
         <div class="settings-card">
           <div class="card-header">
-            <h3>🔔 Push Notification Controls</h3>
+            <h3>👤 Active Franchise / Login</h3>
           </div>
           <div class="settings-body">
-            <p class="settings-desc">Enable push alerts to receive instant notifications on your Mac or Android phone when transactions occur or your weekly opponent updates their starting lineup.</p>
-            <div class="setting-toggle-row">
-              <div>
-                <strong>Transaction Alerts</strong>
-                <p class="small-text">Notify whenever any franchise makes an Add, Drop, or Waiver Claim.</p>
-              </div>
-              <input type="checkbox" id="toggle-tx-alerts" checked class="toggle-checkbox">
+            <p class="settings-desc">Select the active franchise for this device. Roster moves and personalized notifications will be strictly locked to the selected team.</p>
+            <div class="form-group" style="margin-bottom: 15px;">
+              <label for="active-franchise-select" style="display: block; margin-bottom: 5px; color: var(--text-muted); font-size: 0.85rem;">Select Your Franchise:</label>
+              <select id="active-franchise-select" class="input-styled" style="width: 100%; padding: 10px; background: #000; color: #fff; border: 1px solid var(--border-color); border-radius: 4px;">
+                <!-- Dynamically populated via JS -->
+              </select>
             </div>
-            <div class="setting-toggle-row">
-              <div>
-                <strong>Opponent Lineup Change Alerts</strong>
-                <p class="small-text">Instant notification when your weekly opponent benches or starts a player.</p>
-              </div>
-              <input type="checkbox" id="toggle-opp-alerts" checked class="toggle-checkbox">
-            </div>
-            <button id="btn-enable-push" class="btn-primary">📱 Enable Web Push Notifications</button>
-            <div id="push-status-msg" class="status-msg"></div>
+            <button id="btn-save-franchise" class="btn-primary" style="width: 100%;">💾 Save & Reload App</button>
           </div>
         </div>
 
+        <!-- NOTIFICATION PREFERENCES CARD -->
         <div class="settings-card">
           <div class="card-header">
-            <h3>🔑 MFL Credentials & Sync</h3>
+            <h3>🔔 Live Game Push Notifications</h3>
           </div>
           <div class="settings-body">
-            <div class="form-group">
-              <label for="mfl-username">MFL Username / Email:</label>
-              <input type="text" id="mfl-username" placeholder="Mentalcow" class="input-styled">
+            <p class="settings-desc">Customize which live NFL events trigger an instant push notification for your active roster.</p>
+            
+            <div class="setting-toggle-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px;">
+              <div>
+                <strong>All Scoring Plays</strong>
+                <p class="small-text" style="color: var(--text-muted); font-size: 0.75rem; margin-top: 3px;">Any points scored by your active lineup.</p>
+              </div>
+              <input type="checkbox" id="pref-notif-all-scores" checked class="toggle-checkbox">
             </div>
-            <div class="form-group">
-              <label for="mfl-password">MFL Password / Session Cookie:</label>
-              <input type="password" id="mfl-password" placeholder="••••••••••••" class="input-styled">
+
+            <div class="setting-toggle-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px;">
+              <div>
+                <strong>Big Plays Only</strong>
+                <p class="small-text" style="color: var(--text-muted); font-size: 0.75rem; margin-top: 3px;">Only notify on plays gaining > 20 yards or TDs.</p>
+              </div>
+              <input type="checkbox" id="pref-notif-big-plays" class="toggle-checkbox">
             </div>
-            <div class="form-group">
-              <label for="mfl-franchise-id">Franchise ID:</label>
-              <input type="text" id="mfl-franchise-id" value="0001" class="input-styled">
+
+            <div class="setting-toggle-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px;">
+              <div>
+                <strong>Quarter Updates</strong>
+                <p class="small-text" style="color: var(--text-muted); font-size: 0.75rem; margin-top: 3px;">Matchup score summary at the end of every quarter.</p>
+              </div>
+              <input type="checkbox" id="pref-notif-quarters" class="toggle-checkbox">
             </div>
-            <button id="btn-save-credentials" class="btn-secondary">Save Credentials & Test Session</button>
+
+            <div class="setting-toggle-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <div>
+                <strong>Injury & Bye Week Alerts</strong>
+                <p class="small-text" style="color: var(--text-muted); font-size: 0.75rem; margin-top: 3px;">Instant alerts if a starter is injured or on Bye.</p>
+              </div>
+              <input type="checkbox" id="pref-notif-injuries" checked class="toggle-checkbox">
+            </div>
+          </div>
+        </div>
+
+        <!-- LEAGUE TRANSACTION NOTIFICATIONS -->
+        <div class="settings-card">
+          <div class="card-header">
+            <h3>💸 League Transactions</h3>
+          </div>
+          <div class="settings-body">
+            <p class="settings-desc">Receive push notifications for league-wide roster moves.</p>
+            
+            <div class="setting-toggle-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px;">
+              <div>
+                <strong>Waiver Wire Processing</strong>
+                <p class="small-text" style="color: var(--text-muted); font-size: 0.75rem; margin-top: 3px;">Summary alert when waivers clear league-wide.</p>
+              </div>
+              <input type="checkbox" id="pref-notif-waivers" checked class="toggle-checkbox">
+            </div>
+
+            <div class="setting-toggle-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px;">
+              <div>
+                <strong>Free Agent Adds/Drops</strong>
+                <p class="small-text" style="color: var(--text-muted); font-size: 0.75rem; margin-top: 3px;">Any standard FA pickup or drop.</p>
+              </div>
+              <input type="checkbox" id="pref-notif-fa" class="toggle-checkbox">
+            </div>
+
+            <div class="setting-toggle-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px;">
+              <div>
+                <strong>Proposed Trades</strong>
+                <p class="small-text" style="color: var(--text-muted); font-size: 0.75rem; margin-top: 3px;">Alert when another owner proposes a trade to you.</p>
+              </div>
+              <input type="checkbox" id="pref-notif-trade-prop" checked class="toggle-checkbox">
+            </div>
+
+            <div class="setting-toggle-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <div>
+                <strong>Accepted Trades</strong>
+                <p class="small-text" style="color: var(--text-muted); font-size: 0.75rem; margin-top: 3px;">Alert when any two teams complete a trade.</p>
+              </div>
+              <input type="checkbox" id="pref-notif-trade-acc" checked class="toggle-checkbox">
+            </div>
           </div>
         </div>
       </div>
@@ -425,8 +481,8 @@
   <!-- Notification Toast Container -->
   <div id="toast-container" class="toast-container"></div>
 
-  <!-- Scripts with cache buster v=20260913_20 -->
-  <script src="field.js?v=20260913_20"></script>
-  <script src="app39.js"></script>
+  <!-- Scripts with cache buster v=20260913_21 -->
+  <script src="field.js?v=20260913_21"></script>
+  <script src="app40.js"></script>
 </body>
 </html>

@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 class PFFLApp {
   constructor() {
-    this.activeFranchiseId = "0001"; // Mentalcow
+    this.activeFranchiseId = localStorage.getItem("pffl_active_franchise") || "0001";
     this.leagueData = null;
     this.rostersData = null;
     this.playersMap = new Map();
@@ -44,7 +44,40 @@ class PFFLApp {
     } catch (e) {}
     this.renderAll();
     this.setupEventListeners();
+    this.populateSettings();
     this.startLivePolling();
+  }
+  
+  populateSettings() {
+    const select = document.getElementById("active-franchise-select");
+    const btnSave = document.getElementById("btn-save-franchise");
+    if (!select || !btnSave) return;
+    
+    if (this.leagueData && this.leagueData.franchises && this.leagueData.franchises.franchise) {
+        select.innerHTML = this.leagueData.franchises.franchise.map(f => 
+            `<option value="${f.id}" ${f.id === this.activeFranchiseId ? 'selected' : ''}>${f.name}</option>`
+        ).join('');
+    }
+    
+    btnSave.addEventListener("click", () => {
+        localStorage.setItem("pffl_active_franchise", select.value);
+        
+        const toast = document.createElement("div");
+        toast.textContent = "Auth Saved! Reloading...";
+        toast.style.position = "fixed";
+        toast.style.bottom = "20px";
+        toast.style.left = "50%";
+        toast.style.transform = "translateX(-50%)";
+        toast.style.background = "#ff9100";
+        toast.style.color = "#000";
+        toast.style.padding = "10px 20px";
+        toast.style.borderRadius = "20px";
+        toast.style.zIndex = "99999";
+        toast.style.fontWeight = "bold";
+        document.body.appendChild(toast);
+        
+        setTimeout(() => location.reload(), 1000);
+    });
   }
 
   setupNavigation() {
@@ -470,6 +503,7 @@ class PFFLApp {
     try {
       const resp = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard');
       const data = await resp.json();
+      this.espnGames = data.events;
       
       let allActivePlayers = [...(this.team1Starters || []), ...(this.team2Starters || [])];
       if (allActivePlayers.length === 0) return;
@@ -1007,14 +1041,57 @@ class PFFLApp {
   }
 
   createLineupTotalRowHTML(p, isOpponent) {
+    let gameStatusHtml = `<span class="recent-logs-inline" style="font-size: 0.65rem; color: var(--text-muted);">${p.upcomingGameInfo || ''}</span>`;
+    let isLive = false;
+    let hasPossession = false;
+
+    if (this.espnGames && p.team && p.team !== 'NFL' && p.team !== 'BYE' && p.team !== 'FA') {
+        const teamMap = { 'NO':'NO', 'GB':'GB', 'LV':'LV', 'SF':'SF', 'TB':'TB', 'KC':'KC', 'NE':'NE', 'WSH':'WSH', 'JAX':'JAX', 'NOS':'NO', 'GBP':'GB', 'LVR':'LV', 'SFO':'SF', 'TBB':'TB', 'KCC':'KC', 'NEP':'NE', 'WAS':'WSH', 'JAC':'JAX' };
+        let pTeam = teamMap[p.team.toUpperCase()] || p.team.toUpperCase();
+        
+        let game = this.espnGames.find(e => e.competitions && e.competitions[0].competitors.find(c => c.team.abbreviation.toUpperCase() === pTeam));
+        if (game) {
+            const comp = game.competitions[0];
+            const home = comp.competitors.find(c => c.homeAway === 'home');
+            const away = comp.competitors.find(c => c.homeAway === 'away');
+            const myComp = comp.competitors.find(c => c.team.abbreviation.toUpperCase() === pTeam);
+            const oppComp = comp.competitors.find(c => c.team.abbreviation.toUpperCase() !== pTeam);
+            
+            const isHome = myComp === home;
+            const oppStr = (isHome ? 'vs ' : '@ ') + oppComp.team.abbreviation.toUpperCase();
+            
+            const status = game.status.type.state; // 'pre', 'in', 'post'
+            if (status === 'pre') {
+                const date = new Date(game.date);
+                const day = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][date.getDay()];
+                let hrs = date.getHours();
+                const ampm = hrs >= 12 ? 'PM' : 'AM';
+                hrs = hrs % 12 || 12;
+                const mins = date.getMinutes() < 10 ? '0'+date.getMinutes() : date.getMinutes();
+                gameStatusHtml = `<span class="recent-logs-inline" style="font-size: 0.65rem; color: var(--text-muted);">${oppStr} (${day} ${hrs}:${mins} ${ampm})</span>`;
+            } else if (status === 'post') {
+                gameStatusHtml = `<span class="recent-logs-inline" style="font-size: 0.65rem; color: var(--text-muted);">${oppStr} (Final)</span>`;
+            } else {
+                isLive = true;
+                const qtr = game.status.period;
+                const clock = game.status.displayClock;
+                if (comp.situation && comp.situation.possession) {
+                    hasPossession = (comp.situation.possession === myComp.id);
+                }
+                const possIcon = hasPossession ? '🏈' : '';
+                gameStatusHtml = `<span class="recent-logs-inline" style="font-size: 0.70rem; color: var(--accent-yellow); font-weight: bold;">${possIcon} ${oppStr} (Q${qtr} ${clock})</span>`;
+            }
+        }
+    }
+
     return `
-      <div class="play-item" data-id="${p.id}">
+      <div class="play-item" data-id="${p.id}" style="cursor: pointer; position: relative; ${isLive ? 'border-left: 2px solid var(--accent-yellow);' : ''}" onclick="window.alert('Player Breakdown coming soon for ${p.name}')">
         <div class="play-item-left">
           <span class="pos-pill ${p.displaySlot}">${p.displaySlot}</span>
           <div class="play-details">
-            <span class="player-name-line">
-              ${p.name} <span class="player-subtext">(${p.team})</span>
-              <span class="recent-logs-inline">${p.pointLogsStr}</span>
+            <span class="player-name-line" style="${isLive ? 'color: var(--text-main);' : ''}">
+              ${p.name} <span class="player-subtext" style="${isLive ? 'color: var(--accent-cyan);' : ''}">(${p.team})</span>
+              ${gameStatusHtml}
             </span>
           </div>
         </div>
@@ -1130,12 +1207,28 @@ class PFFLApp {
         status: pObj.status || 'ROSTER'
       };
 
-      if (posCount[playerItem.pos] < 2 && this.starters.length < 9) {
-        posCount[playerItem.pos]++;
-        this.starters.push(playerItem);
-      } else {
-        this.bench.push(playerItem);
-      }
+      this.bench.push(playerItem);
+    });
+
+    // Auto-assign starters for initial load based on strict slots
+    const slotsToFill = ['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'FLEX', 'TE', 'K', 'DST'];
+    slotsToFill.forEach(slot => {
+        let basePos = slot.replace(/[0-9]/g, '');
+        if (slot === 'FLEX') {
+            let flexIdx = this.bench.findIndex(p => ['RB', 'WR', 'TE'].includes(p.pos));
+            if (flexIdx > -1) {
+                let [p] = this.bench.splice(flexIdx, 1);
+                p.assignedSlot = slot;
+                this.starters.push(p);
+            }
+        } else {
+            let idx = this.bench.findIndex(p => p.pos === basePos);
+            if (idx > -1) {
+                let [p] = this.bench.splice(idx, 1);
+                p.assignedSlot = slot;
+                this.starters.push(p);
+            }
+        }
     });
 
     this.renderRosterTables();
@@ -1147,27 +1240,84 @@ class PFFLApp {
     const irList = document.getElementById("ir-list");
 
     if (startersList) {
-      startersList.innerHTML = this.starters.map(p => this.createRosterRowHTML(p, 'Bench')).join('');
+      startersList.innerHTML = this.starters.map(p => this.createRosterRowHTML(p, 'STARTER')).join('');
     }
     if (benchList) {
-      benchList.innerHTML = this.bench.map(p => this.createRosterRowHTML(p, 'Start')).join('');
+      benchList.innerHTML = this.bench.map(p => this.createRosterRowHTML(p, 'BENCH')).join('');
     }
     if (irList) {
-      irList.innerHTML = this.ir.map(p => this.createRosterRowHTML(p, 'Activate')).join('');
+      irList.innerHTML = this.ir.map(p => this.createRosterRowHTML(p, 'IR')).join('');
     }
 
-    document.querySelectorAll(".btn-swap-lineup").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const pId = btn.getAttribute("data-id");
-        this.swapPlayerLineup(pId);
+    document.querySelectorAll(".action-slot-select").forEach(sel => {
+      sel.addEventListener("change", (e) => {
+        const pId = e.target.getAttribute("data-id");
+        const newSlot = e.target.value;
+        this.swapPlayerLineup(pId, newSlot);
       });
     });
   }
 
-  createRosterRowHTML(p, actionLabel) {
+  getRealOpponentText(teamAbbr) {
+    if (!this.espnGames || !teamAbbr || teamAbbr === 'NFL' || teamAbbr === 'BYE' || teamAbbr === 'FA') return 'Unknown';
+    const teamMap = { 'NO':'NO', 'GB':'GB', 'LV':'LV', 'SF':'SF', 'TB':'TB', 'KC':'KC', 'NE':'NE', 'WSH':'WSH', 'JAX':'JAX', 'NOS':'NO', 'GBP':'GB', 'LVR':'LV', 'SFO':'SF', 'TBB':'TB', 'KCC':'KC', 'NEP':'NE', 'WAS':'WSH', 'JAC':'JAX' };
+    let pTeam = teamMap[teamAbbr.toUpperCase()] || teamAbbr.toUpperCase();
+    
+    let game = this.espnGames.find(e => e.competitions && e.competitions[0].competitors.find(c => c.team.abbreviation.toUpperCase() === pTeam));
+    if (game) {
+        const comp = game.competitions[0];
+        const home = comp.competitors.find(c => c.homeAway === 'home');
+        const myComp = comp.competitors.find(c => c.team.abbreviation.toUpperCase() === pTeam);
+        const oppComp = comp.competitors.find(c => c.team.abbreviation.toUpperCase() !== pTeam);
+        const isHome = myComp === home;
+        const oppStr = (isHome ? 'vs ' : '@ ') + oppComp.team.abbreviation.toUpperCase();
+        const status = game.status.type.state; // 'pre', 'in', 'post'
+        if (status === 'pre') {
+            const date = new Date(game.date);
+            const day = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][date.getDay()];
+            let hrs = date.getHours();
+            const ampm = hrs >= 12 ? 'PM' : 'AM';
+            hrs = hrs % 12 || 12;
+            const mins = date.getMinutes() < 10 ? '0'+date.getMinutes() : date.getMinutes();
+            return `${oppStr} (${day} ${hrs}:${mins} ${ampm})`;
+        } else if (status === 'post') {
+            return `${oppStr} (Final)`;
+        } else {
+            return `${oppStr} (LIVE Q${game.status.period})`;
+        }
+    }
+    return 'Bye Week';
+  }
+
+  createRosterRowHTML(p, currentState) {
+    let availSlots = ['Bench'];
+    if (p.pos === 'QB') availSlots = ['QB', 'Bench'];
+    if (p.pos === 'RB') availSlots = ['RB1', 'RB2', 'FLEX', 'Bench'];
+    if (p.pos === 'WR') availSlots = ['WR1', 'WR2', 'FLEX', 'Bench'];
+    if (p.pos === 'TE') availSlots = ['TE', 'FLEX', 'Bench'];
+    if (p.pos === 'K') availSlots = ['K', 'Bench'];
+    if (p.pos === 'DST' || p.pos === 'Def') availSlots = ['DST', 'Bench'];
+    
+    // Check IR eligibility randomly for mock
+    if (Math.random() > 0.8) availSlots.push('IR');
+    
+    const oppStr = this.getRealOpponentText(p.team);
+
+    let optionsHTML = availSlots.map(s => {
+        let isSelected = false;
+        if (s === 'Bench' && currentState === 'BENCH') isSelected = true;
+        if (s === 'IR' && currentState === 'IR') isSelected = true;
+        if (currentState === 'STARTER' && p.assignedSlot === s) isSelected = true;
+        
+        // fallback
+        if (currentState === 'STARTER' && !p.assignedSlot && s.startsWith(p.pos)) isSelected = true;
+
+        return `<option value="${s}" ${isSelected ? 'selected' : ''}>${s}</option>`;
+    }).join('');
+
     return `
       <tr>
-        <td><span class="pos-pill ${p.pos}">${p.pos}</span></td>
+        <td><span class="pos-pill ${p.assignedSlot || p.pos}">${p.assignedSlot || p.pos}</span></td>
         <td>
           <div class="player-cell">
             <div class="player-info-meta">
@@ -1176,33 +1326,68 @@ class PFFLApp {
             </div>
           </div>
         </td>
-        <td>vs Opponent (Sun 1:00 PM)</td>
+        <td style="color: var(--text-muted); font-size: 0.85rem;">${oppStr}</td>
         <td><strong>${p.proj}</strong></td>
         <td>
           <span class="diff-meter diff-${p.diff}">${p.diff} / 10</span>
         </td>
         <td><span class="live-status-pill">HEALTHY</span></td>
         <td>
-          <button class="btn-xs btn-swap-lineup" data-id="${p.id}">${actionLabel}</button>
+          <select class="action-slot-select btn-xs" data-id="${p.id}" style="background: var(--bg-alt); color: var(--text-main); border: 1px solid var(--border-color); padding: 4px; border-radius: 4px; font-weight: bold;">
+            ${optionsHTML}
+          </select>
         </td>
       </tr>
     `;
   }
 
-  swapPlayerLineup(pId) {
-    let starterIdx = this.starters.findIndex(p => p.id === pId);
-    if (starterIdx !== -1) {
-      const [moved] = this.starters.splice(starterIdx, 1);
-      this.bench.push(moved);
-      this.showToast(`Benched ${moved.name}`);
-    } else {
-      let benchIdx = this.bench.findIndex(p => p.id === pId);
-      if (benchIdx !== -1) {
-        const [moved] = this.bench.splice(benchIdx, 1);
-        this.starters.push(moved);
-        this.showToast(`Inserted ${moved.name} into Starting Lineup!`);
-      }
+  swapPlayerLineup(pId, newSlot) {
+    // Find player in any list
+    let player = this.starters.find(p => p.id === pId);
+    let source = this.starters;
+    if (!player) {
+      player = this.bench.find(p => p.id === pId);
+      source = this.bench;
     }
+    if (!player) {
+      player = this.ir.find(p => p.id === pId);
+      source = this.ir;
+    }
+    
+    if (!player) return;
+
+    // Remove from source
+    const idx = source.indexOf(player);
+    if (idx > -1) source.splice(idx, 1);
+
+    // Assign new slot
+    if (newSlot === 'Bench') {
+      delete player.assignedSlot;
+      this.bench.push(player);
+      this.showToast(`Benched ${player.name}`);
+    } else if (newSlot === 'IR') {
+      delete player.assignedSlot;
+      this.ir.push(player);
+      this.showToast(`Moved ${player.name} to IR`);
+    } else {
+      player.assignedSlot = newSlot;
+      
+      // If someone is already in this exact slot (e.g. RB1), bump them to bench
+      const existingIdx = this.starters.findIndex(p => p.assignedSlot === newSlot);
+      if (existingIdx > -1) {
+          const [bumped] = this.starters.splice(existingIdx, 1);
+          delete bumped.assignedSlot;
+          this.bench.push(bumped);
+          this.showToast(`Bumped ${bumped.name} to Bench`);
+      }
+      
+      this.starters.push(player);
+      // Re-sort starters based on standard order
+      const slotOrder = ['QB','RB1','RB2','WR1','WR2','FLEX','TE','K','DST'];
+      this.starters.sort((a,b) => slotOrder.indexOf(a.assignedSlot) - slotOrder.indexOf(b.assignedSlot));
+      this.showToast(`Moved ${player.name} to ${newSlot}`);
+    }
+    
     this.renderRosterTables();
   }
 
