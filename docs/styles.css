@@ -31,18 +31,7 @@
   padding: 0;
 }
 
-@keyframes realisticLightning {
-  0% { opacity: 0; }
-  1% { opacity: 1; filter: brightness(1.5); }
-  2% { opacity: 0; }
-  4% { opacity: 0; }
-  5% { opacity: 1; filter: brightness(1.2); }
-  6% { opacity: 0; }
-  30% { opacity: 0; }
-  31% { opacity: 0.5; filter: brightness(1.1); }
-  32% { opacity: 0; }
-  100% { opacity: 0; }
-}
+
 
 body.dark-theme {
   background-color: #050608;
@@ -56,12 +45,15 @@ body.dark-theme {
 
 body.dark-theme::before {
   content: "";
-  position: absolute;
-  top: 0; left: 0; right: 0; height: 100vh;
-  background: radial-gradient(ellipse at top, rgba(90, 100, 140, 0.25) 0%, rgba(10, 12, 18, 0.8) 50%, transparent 100%);
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: url("https://i.pinimg.com/originals/f7/f4/57/f7f45731501497876372b4d67a81c7b7.gif");
+  background-size: cover;
+  background-position: center top;
+  opacity: 0.18;
   pointer-events: none;
   z-index: -1;
-  animation: realisticLightning 14s infinite alternate;
+  mix-blend-mode: lighten;
 }
 
 /* Evil Theme Accents */
