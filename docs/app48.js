@@ -92,102 +92,115 @@ class PFFLApp {
 
   applyBloodDrips() {
     document.querySelectorAll('.team-panel, .settings-card, .trend-item').forEach(panel => {
-        if (panel.hasAttribute('data-blood-applied')) return;
-        panel.setAttribute('data-blood-applied', 'true');
+        if (panel.hasAttribute('data-organic-blood')) return;
+        panel.setAttribute('data-organic-blood', 'true');
         
         if (getComputedStyle(panel).position === 'static') {
             panel.style.position = 'relative';
         }
 
-        // Phase 1: Blood pools across the entire top edge
-        const topPool = document.createElement('div');
-        topPool.style.position = 'absolute';
-        topPool.style.top = '0';
-        topPool.style.left = '0';
-        topPool.style.width = '100%';
-        topPool.style.height = '0px';
-        topPool.style.backgroundColor = '#7a0000';
-        topPool.style.opacity = '0.9';
-        topPool.style.zIndex = '9999';
-        topPool.style.transition = 'height 3s ease-in-out';
-        topPool.style.boxShadow = 'inset 0px -2px 4px rgba(0,0,0,0.6)';
-        panel.appendChild(topPool);
-
-        setTimeout(() => { topPool.style.height = '6px'; }, 100);
-
-        // Phase 2: Corners fill up randomly
-        setTimeout(() => {
-            ['left', 'right'].forEach(side => {
-                const corner = document.createElement('div');
-                corner.style.position = 'absolute';
-                corner.style.top = '0';
-                corner.style[side] = '0';
-                corner.style.width = '0px';
-                corner.style.height = '0px';
-                corner.style.backgroundColor = '#7a0000';
-                corner.style.opacity = '0.9';
-                corner.style.zIndex = '9999';
-                corner.style.borderRadius = side === 'left' ? '0 0 100% 0' : '0 0 0 100%';
-                corner.style.transition = 'width 2s ease-in-out, height 2s ease-in-out';
-                panel.appendChild(corner);
-
-                setTimeout(() => {
-                    corner.style.width = (Math.random() * 30 + 15) + 'px';
-                    corner.style.height = (Math.random() * 15 + 10) + 'px';
-                }, 100);
-            });
-        }, 3000);
-
-        // Phase 3: Infinite continuous dripping all the way down
-        const spawnDrip = () => {
-            if (!document.body.contains(panel)) return; // Cleanup if panel was removed
-
-            const side = Math.random() > 0.5 ? 'left' : 'right';
-            const drip = document.createElement('div');
-            drip.style.position = 'absolute';
-            drip.style.top = '10px';
+        const numColumns = 30; // High resolution jagged ceiling
+        const columns = [];
+        
+        for (let i = 0; i < numColumns; i++) {
+            const col = document.createElement('div');
+            col.style.position = 'absolute';
+            col.style.top = '-2px'; // Hide top edge clipping
+            col.style.left = `${(i / numColumns) * 100}%`;
+            col.style.width = `${(100 / numColumns) + 0.5}%`; // Slight overlap to prevent gaps
+            col.style.height = '0px';
+            col.style.backgroundColor = '#7a0000';
+            col.style.opacity = '0.9';
+            col.style.zIndex = '9999';
+            col.style.borderRadius = '0 0 50% 50%';
+            col.style.boxShadow = 'inset -1px -2px 4px rgba(0,0,0,0.6)';
+            col.style.transition = 'height 3s ease-in-out';
             
-            if (side === 'left') {
-                drip.style.left = (Math.random() * 8) + 'px';
-            } else {
-                drip.style.right = (Math.random() * 8) + 'px';
+            panel.appendChild(col);
+            columns.push(col);
+
+            // Calculate distance from the nearest edge (0 to 14)
+            const distFromEdge = Math.min(i, numColumns - 1 - i);
+            
+            // Corners get deep pools (15-35px), Center gets shallow pools (3-12px)
+            let baseHeight = distFromEdge < 5 ? 25 : 8;
+            let randomVar = (Math.random() * 15) - 5; // -5 to +10 variance
+            let targetHeight = Math.max(3, baseHeight + randomVar);
+
+            // Stagger animation: Outer columns start immediately, inner columns wait
+            // Creates the creeping effect from corners to center
+            const delay = distFromEdge * 250 + (Math.random() * 500); 
+            
+            setTimeout(() => {
+                col.style.height = targetHeight + 'px';
+                col.dataset.baseHeight = targetHeight; // Store for droplet physics
+            }, delay);
+        }
+
+        // Phase 3: The "Break Off" Droplet Physics
+        const spawnDroplet = () => {
+            if (!document.body.contains(panel)) return;
+
+            // Pick a random column to drip from (favor corners slightly, but allow center)
+            const colIndex = Math.floor(Math.random() * numColumns);
+            const anchorCol = columns[colIndex];
+            if (!anchorCol || !anchorCol.dataset.baseHeight) {
+                setTimeout(spawnDroplet, 1000);
+                return;
             }
 
-            drip.style.width = (Math.random() * 4 + 3) + 'px';
-            drip.style.height = (Math.random() * 15 + 10) + 'px';
-            drip.style.backgroundColor = '#7a0000';
-            drip.style.borderRadius = '0 0 50% 50%';
-            drip.style.opacity = '0.9';
-            drip.style.boxShadow = 'inset -1px -2px 4px rgba(0,0,0,0.6)';
-            drip.style.zIndex = '9998'; // Under corners
+            const baseH = parseFloat(anchorCol.dataset.baseHeight);
             
-            const duration = Math.random() * 12 + 8; // 8 to 20 seconds to fall to the very bottom
-            drip.style.transition = `top ${duration}s linear, height ${duration}s ease-in, opacity 0.5s`;
-            
-            panel.appendChild(drip);
+            // 1. Surface Tension: The ceiling column stretches down first
+            anchorCol.style.transition = 'height 1s ease-in';
+            anchorCol.style.height = (baseH + 8) + 'px';
 
-            // Start fall to 100% (bottom of panel)
             setTimeout(() => {
-                drip.style.top = '100%'; 
-                drip.style.height = (parseInt(drip.style.height) + 25) + 'px'; // Stretch as it falls
-            }, 100);
+                // 2. The Snap: The ceiling snaps back, and the droplet spawns
+                anchorCol.style.transition = 'height 0.3s ease-out';
+                anchorCol.style.height = baseH + 'px'; // "Red stays there"
 
-            // Cleanup when it hits bottom
-            setTimeout(() => {
-                if (panel.contains(drip)) {
-                    drip.style.opacity = '0';
-                    setTimeout(() => drip.remove(), 500);
-                }
-            }, duration * 1000);
+                // 3. The Droplet: Breaks off and falls
+                const droplet = document.createElement('div');
+                droplet.style.position = 'absolute';
+                droplet.style.top = (baseH + 5) + 'px'; // Starts exactly where it snapped
+                droplet.style.left = anchorCol.style.left;
+                droplet.style.width = anchorCol.style.width;
+                droplet.style.height = (Math.random() * 10 + 10) + 'px'; // Droplet size
+                droplet.style.backgroundColor = '#7a0000';
+                droplet.style.opacity = '0.9';
+                droplet.style.zIndex = '9998';
+                droplet.style.borderRadius = '50%';
+                droplet.style.boxShadow = 'inset -1px -2px 4px rgba(0,0,0,0.6)';
+                
+                const duration = Math.random() * 8 + 6; // 6 to 14 seconds to hit the floor
+                droplet.style.transition = `top ${duration}s linear, height ${duration}s ease-in, opacity 0.5s`;
+                
+                panel.appendChild(droplet);
 
-            // Schedule the next infinite drip on this panel
-            setTimeout(spawnDrip, Math.random() * 6000 + 2000); // New drip every 2-8 seconds
+                setTimeout(() => {
+                    droplet.style.top = '100%'; // Falls to bottom
+                    droplet.style.height = (parseFloat(droplet.style.height) + 20) + 'px'; // Stretches dynamically as it falls
+                }, 50);
+
+                // Cleanup droplet
+                setTimeout(() => {
+                    if (panel.contains(droplet)) {
+                        droplet.style.opacity = '0';
+                        setTimeout(() => droplet.remove(), 500);
+                    }
+                }, duration * 1000);
+
+            }, 1000); // 1s tension
+
+            // Infinite loop
+            setTimeout(spawnDroplet, Math.random() * 5000 + 3000);
         };
 
-        // Start infinite drips shortly after corner pooling
+        // Start infinite drips after the pool finishes creeping to the center
         setTimeout(() => {
-            spawnDrip();
-            setTimeout(spawnDrip, 3000); // Start second independent loop for chaos
+            spawnDroplet();
+            setTimeout(spawnDroplet, 4000);
         }, 5000);
     });
   }
