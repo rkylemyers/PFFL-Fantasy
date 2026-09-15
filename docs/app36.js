@@ -78,13 +78,14 @@ class PFFLApp {
         btnViewRoster.classList.remove("active");
         this.renderLiveMatchup(this.currentMatchupIndex);
       });
+    }
       
-      // Register Service Worker for Mobile PWA Notifications
-      if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.register('sw.js').catch(err => console.warn("SW registration failed", err));
-      }
+    // Register Service Worker for Mobile PWA Notifications
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(err => console.warn("SW registration failed", err));
+    }
 
-      const btnNotif = document.getElementById("btn-enable-notifications");
+    const btnNotif = document.getElementById("btn-enable-notifications");
       if (btnNotif) {
         try { if (window.Notification && Notification.permission === "granted") btnNotif.style.opacity = "0.5"; } catch(e) {}
         btnNotif.addEventListener("click", () => {
@@ -174,7 +175,6 @@ class PFFLApp {
             }
         });
       }
-    }
   }
 
   async loadData() {
