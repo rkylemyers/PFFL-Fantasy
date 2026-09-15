@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260913_21">
+  <link rel="stylesheet" href="styles.css?v=20260913_22">
 </head>
 <body class="dark-theme">
   <!-- Top Global Navigation Bar -->
@@ -379,14 +379,16 @@
             <h3>👤 Active Franchise / Login</h3>
           </div>
           <div class="settings-body">
-            <p class="settings-desc">Select the active franchise for this device. Roster moves and personalized notifications will be strictly locked to the selected team.</p>
+            <p class="settings-desc">View the app as any franchise in Read-Only mode, or provide your MFL password to take active control of roster moves and waivers.</p>
             <div class="form-group" style="margin-bottom: 15px;">
-              <label for="active-franchise-select" style="display: block; margin-bottom: 5px; color: var(--text-muted); font-size: 0.85rem;">Select Your Franchise:</label>
-              <select id="active-franchise-select" class="input-styled" style="width: 100%; padding: 10px; background: #000; color: #fff; border: 1px solid var(--border-color); border-radius: 4px;">
+              <label for="active-franchise-select" style="display: block; margin-bottom: 5px; color: var(--text-muted); font-size: 0.85rem;">Select Franchise to View:</label>
+              <select id="active-franchise-select" class="input-styled" style="width: 100%; padding: 10px; background: #000; color: #fff; border: 1px solid var(--border-color); border-radius: 4px; margin-bottom: 10px;">
                 <!-- Dynamically populated via JS -->
               </select>
+              <label for="mfl-password" style="display: block; margin-bottom: 5px; color: var(--text-muted); font-size: 0.85rem;">MFL Password (Optional - Required for Roster Moves):</label>
+              <input type="password" id="mfl-password" class="input-styled" placeholder="Enter password to take control..." style="width: 100%; padding: 10px; background: #000; color: #fff; border: 1px solid var(--border-color); border-radius: 4px;">
             </div>
-            <button id="btn-save-franchise" class="btn-primary" style="width: 100%;">💾 Save & Reload App</button>
+            <button id="btn-save-franchise" class="btn-primary" style="width: 100%;">💾 Set Active Franchise & Reload</button>
           </div>
         </div>
 
@@ -481,8 +483,8 @@
   <!-- Notification Toast Container -->
   <div id="toast-container" class="toast-container"></div>
 
-  <!-- Scripts with cache buster v=20260913_21 -->
-  <script src="field.js?v=20260913_21"></script>
-  <script src="app40.js"></script>
+  <!-- Scripts with cache buster v=20260913_22 -->
+  <script src="field.js?v=20260913_22"></script>
+  <script src="app41.js"></script>
 </body>
 </html>

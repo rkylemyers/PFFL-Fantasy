@@ -31,25 +31,60 @@
   padding: 0;
 }
 
-@keyframes lightningFlash {
-  0% { background-color: var(--bg-dark); }
-  2% { background-color: rgba(60, 65, 80, 0.8); }
-  4% { background-color: var(--bg-dark); }
-  6% { background-color: rgba(90, 95, 120, 0.9); }
-  8% { background-color: var(--bg-dark); }
-  100% { background-color: var(--bg-dark); }
+@keyframes realisticLightning {
+  0% { opacity: 0; }
+  1% { opacity: 1; filter: brightness(1.5); }
+  2% { opacity: 0; }
+  4% { opacity: 0; }
+  5% { opacity: 1; filter: brightness(1.2); }
+  6% { opacity: 0; }
+  30% { opacity: 0; }
+  31% { opacity: 0.5; filter: brightness(1.1); }
+  32% { opacity: 0; }
+  100% { opacity: 0; }
 }
 
 body.dark-theme {
-  background-color: var(--bg-dark);
-  background-image: radial-gradient(circle at 50% -20%, rgba(50, 0, 15, 0.5) 0%, transparent 60%);
-  color: var(--text-main);
+  background-color: #050608;
+  color: #d8d8d8;
   font-family: var(--font-main);
   min-height: 100vh;
   line-height: 1.4;
   overflow-x: hidden;
-  animation: lightningFlash 15s infinite;
-  animation-delay: 5s;
+  position: relative;
+}
+
+body.dark-theme::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 100vh;
+  background: radial-gradient(ellipse at top, rgba(90, 100, 140, 0.25) 0%, rgba(10, 12, 18, 0.8) 50%, transparent 100%);
+  pointer-events: none;
+  z-index: -1;
+  animation: realisticLightning 14s infinite alternate;
+}
+
+/* Evil Theme Accents */
+.page-title {
+  color: #ff3333;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+  border-bottom: 2px solid rgba(139, 0, 0, 0.6);
+  padding-bottom: 5px;
+}
+
+.team-header, .card-header {
+  border-bottom: 1px solid rgba(139, 0, 0, 0.5) !important;
+  box-shadow: inset 0 -5px 15px rgba(50, 0, 0, 0.2);
+}
+
+.team-panel, .settings-card, .trend-item {
+  background: linear-gradient(145deg, #0f1218 0%, #07090c 100%);
+  border: 1px solid rgba(139, 0, 0, 0.2);
+}
+
+.active-matchup {
+  border: 2px solid #8b0000;
+  box-shadow: 0 0 10px rgba(139, 0, 0, 0.5);
 }
 
 /* Header & Navbar */

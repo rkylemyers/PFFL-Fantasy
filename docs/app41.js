@@ -59,8 +59,16 @@ class PFFLApp {
         ).join('');
     }
     
+    const mflPass = document.getElementById("mfl-password");
+    if (mflPass) mflPass.value = localStorage.getItem("pffl_mfl_password") || "";
+
     btnSave.addEventListener("click", () => {
         localStorage.setItem("pffl_active_franchise", select.value);
+        if (mflPass && mflPass.value) {
+            localStorage.setItem("pffl_mfl_password", mflPass.value);
+        } else {
+            localStorage.removeItem("pffl_mfl_password");
+        }
         
         const toast = document.createElement("div");
         toast.textContent = "Auth Saved! Reloading...";
@@ -1342,6 +1350,12 @@ class PFFLApp {
   }
 
   swapPlayerLineup(pId, newSlot) {
+    if (!localStorage.getItem("pffl_mfl_password")) {
+        alert("You must log in with your MFL credentials in the Settings tab to take control of this team and make lineup changes!");
+        // Revert select dropdown visually
+        this.renderRosterTables();
+        return;
+    }
     // Find player in any list
     let player = this.starters.find(p => p.id === pId);
     let source = this.starters;
@@ -1410,7 +1424,8 @@ class PFFLApp {
     // Build real trends based on my roster
     let sampleTrends = [];
     myRosterIds.slice(0, 3).forEach(id => {
-        let name = this.playersMap.get(id) || "Player " + id;
+        let playerObj = this.playersMap.get(id);
+        let name = playerObj ? playerObj.name : "Player " + id;
         let isUp = Math.random() > 0.5;
         let p1 = (Math.random() * 20).toFixed(1);
         let p3 = (Math.random() * 20).toFixed(1);
@@ -1436,7 +1451,8 @@ class PFFLApp {
     
     let sampleReplacements = [];
     freeAgents.slice(0, 3).forEach(fa => {
-        let name = this.playersMap.get(fa.id) || "FA Player " + fa.id;
+        let playerObj = this.playersMap.get(fa.id);
+        let name = playerObj ? playerObj.name : "FA Player " + fa.id;
         sampleReplacements.push({
             name: name,
             reason: `Projected ${fa.score} pts this week`,
