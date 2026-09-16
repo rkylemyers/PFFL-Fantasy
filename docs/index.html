@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260913_49">
+  <link rel="stylesheet" href="styles.css?v=20260913_50">
 </head>
 <body class="dark-theme">
   <!-- Top Global Navigation Bar -->
@@ -60,6 +60,12 @@
 
     <!-- PAGE 1: LIVE SCORING & MATCHUP FIELD -->
     <section id="tab-live" class="tab-page active">
+
+      <div style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 10px; margin-bottom: 5px;">
+        <button id="btn-prev-week" class="btn btn-secondary" style="padding: 5px 15px; min-width: 100px;">&#8592; Prev</button>
+        <h3 id="display-current-week" style="margin: 0; color: var(--accent-red); font-size: 1.2rem; min-width: 120px; text-align: center;">Week 1</h3>
+        <button id="btn-next-week" class="btn btn-secondary" style="padding: 5px 15px; min-width: 100px;">Next &#8594;</button>
+      </div>
 
       <!-- Overall Matchup Scoreboard Banner -->
       <div class="matchup-banner-header" id="overall-scoreboard-banner">
@@ -483,8 +489,8 @@
   <!-- Notification Toast Container -->
   <div id="toast-container" class="toast-container"></div>
 
-  <!-- Scripts with cache buster v=20260913_49 -->
-  <script src="field.js?v=20260913_49"></script>
-  <script src="app68.js"></script>
+  <!-- Scripts with cache buster v=20260913_50 -->
+  <script src="field.js?v=20260913_50"></script>
+  <script src="app69.js"></script>
 </body>
 </html>

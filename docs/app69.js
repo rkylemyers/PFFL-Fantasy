@@ -168,7 +168,11 @@ class PFFLApp {
         const spawnDrop = () => {
             if (!document.body.contains(canvas)) return;
             
-            if (pools.length === 0) return; // Not initialized yet
+            if (pools.length === 0) {
+                // Not initialized yet, but keep checking!
+                setTimeout(spawnDrop, 1000);
+                return;
+            }
             // Enforce logical physics: ONLY spawn drops from the established pools
             let pool = pools[Math.floor(Math.random() * pools.length)];
             
@@ -207,12 +211,16 @@ class PFFLApp {
             if (!document.body.contains(canvas)) return;
             
             // Fix disappearing drops: dynamically update bounds if DOM content pushed the height down
-            if (canvas.offsetWidth > 0 && (canvas.width !== canvas.offsetWidth || canvas.height !== canvas.offsetHeight)) {
+            if (canvas.offsetWidth > 0 && (canvas.width !== canvas.offsetWidth || canvas.height !== canvas.offsetHeight || pools.length === 0)) {
                 canvas.width = canvas.offsetWidth;
                 canvas.height = canvas.offsetHeight;
                 recalculateGeometry();
             }
-            if (canvas.width === 0) return; // Wait until visible
+            
+            if (canvas.width === 0) {
+                requestAnimationFrame(animate); // Keep the loop alive while waiting for layout
+                return; 
+            }
             
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
