@@ -108,6 +108,7 @@ class PFFLApp {
         canvas.style.width = '100%'; canvas.style.height = '100%';
         canvas.style.pointerEvents = 'none';
         canvas.style.overflow = 'hidden';
+        canvas.style.filter = 'drop-shadow(0px 3px 2px rgba(0,0,0,0.6))';
         panel.insertBefore(canvas, panel.firstChild);
 
         const columns = [];
@@ -133,7 +134,7 @@ class PFFLApp {
             const r2 = Math.random() * 30 + 40;
             blob.style.borderRadius = `0 0 ${r1}% ${r2}%`;
             blob.style.transition = 'height 3s ease-in-out';
-            blob.style.boxShadow = 'inset -1px -2px 2px rgba(0,0,0,0.5)';
+            
             
             canvas.appendChild(blob);
             columns.push(blob);
@@ -174,23 +175,24 @@ class PFFLApp {
                 
                 const anchorLeft = parseFloat(anchor.style.left);
                 const anchorWidth = parseFloat(anchor.style.width);
-                const dropWidth = Math.random() * 8 + 4; // Thick streaks (4-12px)
+                const dropWidth = Math.random() * 6 + 7; // 7-13px (no small drops) // Thick streaks (4-12px)
                 droplet.style.left = `calc(${anchorLeft + (anchorWidth/2)}% - ${dropWidth/2}px)`;
                 droplet.style.width = dropWidth + 'px'; 
                 droplet.style.height = (Math.random() * 20 + 10) + 'px';
                 droplet.style.backgroundColor = '#660000';
                 droplet.style.opacity = '0.95';
                 droplet.style.borderRadius = '50%';
-                droplet.style.boxShadow = 'inset -1px -2px 2px rgba(0,0,0,0.5)';
+                
                 
                 const duration = Math.random() * 8 + 8; // 8 to 16 seconds (slower, thick syrupy fall)
-                droplet.style.transition = `top ${duration}s linear, height ${duration}s ease-in, opacity 0.5s`;
+                droplet.style.transition = `top ${duration}s linear, opacity 0.5s`;
+                droplet.style.animation = `fluidOscillation ${duration}s ease-in-out forwards`;
                 
                 canvas.appendChild(droplet);
 
                 setTimeout(() => {
                     droplet.style.top = '100%'; 
-                    droplet.style.height = (parseFloat(droplet.style.height) + 40) + 'px'; // Viscous heavy stretch
+                    
                 }, 50);
 
                 setTimeout(() => {
@@ -203,15 +205,14 @@ class PFFLApp {
             }, 3000);
 
             // Brutally fast spawn rate for MORE BLOOD
-            setTimeout(spawnDroplet, Math.random() * 1200 + 400); 
+            setTimeout(spawnDroplet, Math.random() * 3000 + 1500); 
         };
         
         // Spawn multiple concurrent drip engines for massive volume
         setTimeout(spawnDroplet, 4000);
         setTimeout(spawnDroplet, 4500);
         setTimeout(spawnDroplet, 5000);
-        setTimeout(spawnDroplet, 5500);
-        setTimeout(spawnDroplet, 6000);
+        
 
 
         setTimeout(() => {
