@@ -152,17 +152,21 @@ class PFFLApp {
         };
 
         const resizeCanvas = () => {
-            if (canvas.offsetWidth > 0 && (canvas.width !== canvas.offsetWidth || canvas.height !== canvas.offsetHeight || pools.length === 0)) {
-                canvas.width = canvas.offsetWidth;
-                canvas.height = canvas.offsetHeight;
-                recalculateGeometry();
+            if (canvas.offsetWidth > 0 && canvas.offsetHeight > 0) {
+                if (canvas.width !== canvas.offsetWidth || canvas.height !== canvas.offsetHeight || pools.length === 0) {
+                    canvas.width = canvas.offsetWidth;
+                    canvas.height = canvas.offsetHeight;
+                    recalculateGeometry();
+                }
             }
         };
         
-        // Force initial dimensions regardless of CSS defaults to guarantee recalculateGeometry runs
-        canvas.width = 0; 
+        // Try initial sizing immediately
         resizeCanvas();
         
+        // Force a resize check slightly later in case DOM was rendering
+        setTimeout(resizeCanvas, 500);
+        setTimeout(resizeCanvas, 1500);
         window.addEventListener('resize', resizeCanvas);
 
         const spawnDrop = () => {
@@ -210,15 +214,17 @@ class PFFLApp {
         const animate = () => {
             if (!document.body.contains(canvas)) return;
             
-            // Fix disappearing drops: dynamically update bounds if DOM content pushed the height down
-            if (canvas.offsetWidth > 0 && (canvas.width !== canvas.offsetWidth || canvas.height !== canvas.offsetHeight || pools.length === 0)) {
-                canvas.width = canvas.offsetWidth;
-                canvas.height = canvas.offsetHeight;
-                recalculateGeometry();
+            // Dynamic resize checks
+            if (canvas.offsetWidth > 0 && canvas.offsetHeight > 0) {
+                if (canvas.width !== canvas.offsetWidth || canvas.height !== canvas.offsetHeight || pools.length === 0) {
+                    canvas.width = canvas.offsetWidth;
+                    canvas.height = canvas.offsetHeight;
+                    recalculateGeometry();
+                }
             }
             
-            if (canvas.width === 0) {
-                requestAnimationFrame(animate); // Keep the loop alive while waiting for layout
+            if (canvas.width === 0 || canvas.height === 0 || pools.length === 0) {
+                requestAnimationFrame(animate); 
                 return; 
             }
             
@@ -981,10 +987,10 @@ class PFFLApp {
   }
 
   renderAll() {
-    // Set actual week
-    const rosterWeek = this.rostersData.franchise && this.rostersData.franchise[0] ? parseInt(this.rostersData.franchise[0].week) : 1;
-    this.currentLiveWeek = rosterWeek;
-    if (this.viewingWeek === 1) this.viewingWeek = rosterWeek;
+    // Set actual week from liveScoring.json (since it is the source of truth for the live matchups, unlike rosters.json which jumps ahead early)
+    const liveWeek = this.liveScoringData && this.liveScoringData.week ? parseInt(this.liveScoringData.week) : 1;
+    this.currentLiveWeek = liveWeek;
+    if (this.viewingWeek === 1) this.viewingWeek = liveWeek;
     
     document.getElementById("last-sync-timestamp").textContent = `LAST SYNC: ${this.lastSyncTime}`;
     this.updateWeekView();
