@@ -314,6 +314,52 @@ class PFFLApp {
     });
   }
 
+  showPlayerModal(id, name, team, pos, score, projScore, isLive) {
+    const modal = document.getElementById('player-modal');
+    if (!modal) return;
+    
+    document.getElementById('modal-player-name').textContent = name;
+    
+    let gameStatus = this.getRealOpponentText(team);
+    let breakdownHtml = `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 4px; text-align: center;">
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Points</div>
+                <div style="font-size: 1.5rem; font-weight: bold; color: white;">${score}</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 4px; text-align: center;">
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Projected</div>
+                <div style="font-size: 1.5rem; font-weight: bold; color: var(--text-muted);">${projScore}</div>
+            </div>
+        </div>
+        <p><strong>Position:</strong> ${pos}</p>
+        <p><strong>NFL Team:</strong> ${team}</p>
+        <p><strong>NFL Matchup:</strong> <span style="color: ${isLive === 'true' ? 'var(--accent-yellow)' : 'white'};">${gameStatus}</span></p>
+    `;
+    
+    // Check if liveScoringData has detailed stats (usually populated during live games by MFL)
+    if (this.viewingWeek === this.currentLiveWeek && this.liveScoringData && this.liveScoringData.matchup) {
+        for (const matchup of this.liveScoringData.matchup) {
+            for (const fran of matchup.franchise || []) {
+                if (fran.players && fran.players.player) {
+                    const found = fran.players.player.find(player => player.id === id);
+                    if (found && found.updatedStats && found.updatedStats.trim() !== '') {
+                        breakdownHtml += `
+                            <div style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
+                                <h4 style="margin: 0 0 5px 0; color: var(--accent-red);">Live Play Breakdown</h4>
+                                <p style="font-size: 0.9rem; color: var(--text-muted);">${found.updatedStats}</p>
+                            </div>
+                        `;
+                    }
+                }
+            }
+        }
+    }
+    
+    document.getElementById('modal-player-details').innerHTML = breakdownHtml;
+    modal.style.display = 'flex';
+  }
+
   populateSettings() {
     const select = document.getElementById("active-franchise-select");
     const btnSave = document.getElementById("btn-save-franchise");
@@ -1389,7 +1435,7 @@ class PFFLApp {
     }
 
     return `
-      <div class="play-item" data-id="${p.id}" style="cursor: pointer; position: relative; ${isLive ? 'border-left: 2px solid var(--accent-yellow);' : ''}" onclick="window.alert('Player Breakdown coming soon for ${p.name}')">
+      <div class="play-item" data-id="${p.id}" style="cursor: pointer; position: relative; ${isLive ? 'border-left: 2px solid var(--accent-yellow);' : ''}" onclick="window.PFFL.showPlayerModal('${p.id}', '${p.name}', '${p.team}', '${p.pos}', '${score}', '${projScore}', '${isLive}')">
         <div class="play-item-left">
           <span class="pos-pill ${p.displaySlot}">${p.displaySlot}</span>
           <div class="play-details">
