@@ -151,23 +151,16 @@ class PFFLApp {
             }
         };
 
-        const resizeCanvas = () => {
-            if (canvas.offsetWidth > 0 && canvas.offsetHeight > 0) {
-                if (canvas.width !== canvas.offsetWidth || canvas.height !== canvas.offsetHeight || pools.length === 0) {
-                    canvas.width = canvas.offsetWidth;
-                    canvas.height = canvas.offsetHeight;
-                    recalculateGeometry();
-                }
+        // Just hardcode the canvas width to offsetWidth periodically if it's broken
+        const forceCanvasSize = () => {
+            if (canvas.offsetWidth > 0 && canvas.width !== canvas.offsetWidth) {
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+                recalculateGeometry();
             }
         };
-        
-        // Try initial sizing immediately
-        resizeCanvas();
-        
-        // Force a resize check slightly later in case DOM was rendering
-        setTimeout(resizeCanvas, 500);
-        setTimeout(resizeCanvas, 1500);
-        window.addEventListener('resize', resizeCanvas);
+        setInterval(forceCanvasSize, 1000); // Check every second, foolproof
+        forceCanvasSize();
 
         const spawnDrop = () => {
             if (!document.body.contains(canvas)) return;
@@ -214,16 +207,8 @@ class PFFLApp {
         const animate = () => {
             if (!document.body.contains(canvas)) return;
             
-            // Dynamic resize checks
-            if (canvas.offsetWidth > 0 && canvas.offsetHeight > 0) {
-                if (canvas.width !== canvas.offsetWidth || canvas.height !== canvas.offsetHeight || pools.length === 0) {
-                    canvas.width = canvas.offsetWidth;
-                    canvas.height = canvas.offsetHeight;
-                    recalculateGeometry();
-                }
-            }
-            
             if (canvas.width === 0 || canvas.height === 0 || pools.length === 0) {
+                forceCanvasSize();
                 requestAnimationFrame(animate); 
                 return; 
             }
@@ -233,7 +218,7 @@ class PFFLApp {
             ctx.shadowColor = 'rgba(0,0,0,0.6)';
             ctx.shadowOffsetY = 2;
             ctx.shadowBlur = 3;
-            ctx.fillStyle = '#990000';
+            ctx.fillStyle = '#ff0000';
 
             // Draw ceiling
             ctx.beginPath();
@@ -563,15 +548,16 @@ class PFFLApp {
         .then(r => r.json())
         .catch(() => fetch('data/liveScoring.json?t=' + Date.now()).then(r => r.json()));
 
+      const bust = '?t=' + Date.now();
       const [leagueRes, rostersRes, playersRes, txRes, projRes, liveRes, syncRes, schedRes] = await Promise.all([
-        fetch('data/league.json').then(r => r.json()).catch(() => ({})),
-        fetch('data/rosters.json').then(r => r.json()).catch(() => ({})),
-        fetch('data/players.json').then(r => r.json()).catch(() => ({})),
-        fetch('data/transactions.json').then(r => r.json()).catch(() => ({})),
-        fetch('data/projectedScores.json').then(r => r.json()).catch(() => ({})),
+        fetch('data/league.json' + bust).then(r => r.json()).catch(() => ({})),
+        fetch('data/rosters.json' + bust).then(r => r.json()).catch(() => ({})),
+        fetch('data/players.json' + bust).then(r => r.json()).catch(() => ({})),
+        fetch('data/transactions.json' + bust).then(r => r.json()).catch(() => ({})),
+        fetch('data/projectedScores.json' + bust).then(r => r.json()).catch(() => ({})),
         liveScoringPromise,
-        fetch('data/sync_status.json').then(r => r.json()).catch(() => ({})),
-        fetch('data/schedule.json').then(r => r.json()).catch(() => ({}))
+        fetch('data/sync_status.json' + bust).then(r => r.json()).catch(() => ({})),
+        fetch('data/schedule.json' + bust).then(r => r.json()).catch(() => ({}))
       ]);
       this.scheduleData = schedRes.schedule || {};
 
@@ -1009,6 +995,10 @@ class PFFLApp {
           disp.textContent = `Week ${this.viewingWeek}` + (this.viewingWeek === this.currentLiveWeek ? " (Live)" : "");
       }
       this.currentMatchupIndex = 0; // Reset index when changing weeks
+      
+      const matchups = this.getMatchupsForViewingWeek();
+      console.log("UPDATE WEEK VIEW -> Week:", this.viewingWeek, "Matchups:", matchups);
+      
       this.renderMatchupStrip();
       this.renderLiveMatchup(this.currentMatchupIndex);
   }
@@ -1157,8 +1147,9 @@ class PFFLApp {
 
     if (myStreamFeed) myStreamFeed.innerHTML = this.createRunningStreamHTML(team1Starters, false);
     if (oppStreamFeed) oppStreamFeed.innerHTML = this.createRunningStreamHTML(team2Starters, true);
-    if (myRosterFeed) myRosterFeed.innerHTML = team1Starters.map(p => this.createLineupTotalRowHTML(p, false)).join('');
-    if (oppRosterFeed) oppRosterFeed.innerHTML = team2Starters.map(p => this.createLineupTotalRowHTML(p, true)).join('');
+    const emptyMsg = `<div style="padding: 20px; text-align: center; color: var(--text-muted); font-style: italic;">Player-level breakdown data is only synced for the current live week.</div>`;
+    if (myRosterFeed) myRosterFeed.innerHTML = team1Starters.length > 0 ? team1Starters.map(p => this.createLineupTotalRowHTML(p, false)).join('') : emptyMsg;
+    if (oppRosterFeed) oppRosterFeed.innerHTML = team2Starters.length > 0 ? team2Starters.map(p => this.createLineupTotalRowHTML(p, true)).join('') : emptyMsg;
 
     // Field Top 6 Plays Combos
     let allPlays1 = this.getTeamAllPlays(team1Starters).map(p => ({...p, isOpponent: false}));
