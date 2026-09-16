@@ -227,7 +227,7 @@ class PFFLApp {
             ctx.shadowColor = 'rgba(0,0,0,0.6)';
             ctx.shadowOffsetY = 2;
             ctx.shadowBlur = 3;
-            ctx.fillStyle = '#660000';
+            ctx.fillStyle = '#990000';
 
             // Draw ceiling
             ctx.beginPath();
@@ -557,15 +557,17 @@ class PFFLApp {
         .then(r => r.json())
         .catch(() => fetch('data/liveScoring.json?t=' + Date.now()).then(r => r.json()));
 
-      const [leagueRes, rostersRes, playersRes, txRes, projRes, liveRes, syncRes] = await Promise.all([
+      const [leagueRes, rostersRes, playersRes, txRes, projRes, liveRes, syncRes, schedRes] = await Promise.all([
         fetch('data/league.json').then(r => r.json()).catch(() => ({})),
         fetch('data/rosters.json').then(r => r.json()).catch(() => ({})),
         fetch('data/players.json').then(r => r.json()).catch(() => ({})),
         fetch('data/transactions.json').then(r => r.json()).catch(() => ({})),
         fetch('data/projectedScores.json').then(r => r.json()).catch(() => ({})),
         liveScoringPromise,
-        fetch('data/sync_status.json').then(r => r.json()).catch(() => ({}))
+        fetch('data/sync_status.json').then(r => r.json()).catch(() => ({})),
+        fetch('data/schedule.json').then(r => r.json()).catch(() => ({}))
       ]);
+      this.scheduleData = schedRes.schedule || {};
 
       this.leagueData = leagueRes.league || {};
       this.rostersData = rostersRes.rosters || {};
@@ -1960,6 +1962,25 @@ class PFFLApp {
   }
 
   setupEventListeners() {
+    // Nav Tabs
+    const btnPrevWeek = document.getElementById("btn-prev-week");
+    const btnNextWeek = document.getElementById("btn-next-week");
+    
+    if (btnPrevWeek && btnNextWeek) {
+        btnPrevWeek.addEventListener("click", () => {
+            if (this.viewingWeek > 1) {
+                this.viewingWeek--;
+                this.updateWeekView();
+            }
+        });
+        btnNextWeek.addEventListener("click", () => {
+            if (this.viewingWeek < 17) {
+                this.viewingWeek++;
+                this.updateWeekView();
+            }
+        });
+    }
+
     const btnSubmit = document.getElementById("btn-submit-lineup");
     if (btnSubmit) {
       btnSubmit.addEventListener("click", () => {
