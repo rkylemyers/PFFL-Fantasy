@@ -126,13 +126,14 @@ class PFFLApp {
             blob.style.left = `${leftPos}%`;
             blob.style.width = `${Math.random() * 15 + 5}%`; // Massive heavy pools
             blob.style.height = '0px';
-            blob.style.backgroundColor = '#5a0000'; 
-            blob.style.opacity = '0.85'; // Darker, heavier volume
+            blob.style.backgroundColor = '#660000'; 
+            blob.style.opacity = '0.95'; // Darker, heavier volume
             
             const r1 = Math.random() * 30 + 40;
             const r2 = Math.random() * 30 + 40;
             blob.style.borderRadius = `0 0 ${r1}% ${r2}%`;
             blob.style.transition = 'height 3s ease-in-out';
+            blob.style.boxShadow = 'inset -1px -2px 2px rgba(0,0,0,0.5)';
             
             canvas.appendChild(blob);
             columns.push(blob);
@@ -160,8 +161,8 @@ class PFFLApp {
 
             const baseH = parseFloat(anchor.dataset.baseHeight);
             
-            anchor.style.transition = 'height 1.5s ease-in';
-            anchor.style.height = (baseH + 12) + 'px';
+            anchor.style.transition = 'height 2.5s ease-in';
+            anchor.style.height = (baseH + 25) + 'px';
 
             setTimeout(() => {
                 anchor.style.transition = 'height 0.4s ease-out';
@@ -177,11 +178,12 @@ class PFFLApp {
                 droplet.style.left = `calc(${anchorLeft + (anchorWidth/2)}% - ${dropWidth/2}px)`;
                 droplet.style.width = dropWidth + 'px'; 
                 droplet.style.height = (Math.random() * 20 + 10) + 'px';
-                droplet.style.backgroundColor = '#5a0000';
-                droplet.style.opacity = '0.85';
+                droplet.style.backgroundColor = '#660000';
+                droplet.style.opacity = '0.95';
                 droplet.style.borderRadius = '50%';
+                droplet.style.boxShadow = 'inset -1px -2px 2px rgba(0,0,0,0.5)';
                 
-                const duration = Math.random() * 6 + 4; // Faster, heavier fall
+                const duration = Math.random() * 8 + 8; // 8 to 16 seconds (slower, thick syrupy fall)
                 droplet.style.transition = `top ${duration}s linear, height ${duration}s ease-in, opacity 0.5s`;
                 
                 canvas.appendChild(droplet);
@@ -198,7 +200,7 @@ class PFFLApp {
                     }
                 }, duration * 1000);
 
-            }, 1500);
+            }, 3000);
 
             // Brutally fast spawn rate for MORE BLOOD
             setTimeout(spawnDroplet, Math.random() * 1200 + 400); 
