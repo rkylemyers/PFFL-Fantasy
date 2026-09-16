@@ -1111,18 +1111,8 @@ body.dark-theme {
 }
 .play-item { margin-bottom: 4px; }
 
-@keyframes fluidOscillation {
-    0% { border-radius: 50% 50% 50% 50% / 90% 90% 10% 10%; }
     40% { border-radius: 50%; }
     100% { border-radius: 50%; }
 }
 
-.blood-blob, .blood-droplet {
-    will-change: height, top;
-    transform: translateZ(0);
-}
 
-.blood-blob, .blood-droplet {
-    will-change: height, top;
-    transform: translateZ(0);
-}
