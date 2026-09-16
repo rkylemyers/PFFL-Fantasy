@@ -927,12 +927,42 @@ class PFFLApp {
   // -------------------------------------------------------------
   // PAGE 1: LIVE SCORING & REVERSE CHRONOLOGICAL STREAM ENGINE
   // -------------------------------------------------------------
+  updateWeekView() {
+      const disp = document.getElementById("display-current-week");
+      if (disp) {
+          disp.textContent = `Week ${this.viewingWeek}` + (this.viewingWeek === this.currentLiveWeek ? " (Live)" : "");
+      }
+      this.currentMatchupIndex = 0; // Reset index when changing weeks
+      this.renderMatchupStrip();
+      this.renderLiveMatchup(this.currentMatchupIndex);
+  }
+
+  getMatchupsForViewingWeek() {
+      // If we are looking at the current live week, use liveScoringData for active points
+      if (this.viewingWeek === this.currentLiveWeek && this.liveScoringData && this.liveScoringData.matchup) {
+          return JSON.parse(JSON.stringify(this.liveScoringData.matchup));
+      }
+      // Otherwise, use scheduleData for past/future scores
+      if (this.scheduleData && this.scheduleData.weeklySchedule) {
+          const wSched = this.scheduleData.weeklySchedule.find(w => parseInt(w.week) === this.viewingWeek);
+          if (wSched && wSched.matchup) {
+              return JSON.parse(JSON.stringify(wSched.matchup));
+          }
+      }
+      return [];
+  }
+
   renderMatchupStrip() {
     const strip = document.getElementById("league-matchup-strip");
-    if (!strip || !this.liveScoringData.matchup) return;
+    if (!strip) return;
 
     const franchises = (this.leagueData.franchises && this.leagueData.franchises.franchise) || [];
-    let matchups = (this.liveScoringData.matchup) || [];
+    let matchups = this.getMatchupsForViewingWeek();
+    
+    if (!matchups || matchups.length === 0) {
+        strip.innerHTML = "<p>No matchup data available for this week.</p>";
+        return;
+    }
 
     const myMatchupIndex = matchups.findIndex(m => m.franchise[0].id === this.activeFranchiseId || m.franchise[1].id === this.activeFranchiseId);
     if (myMatchupIndex > 0) {
@@ -986,7 +1016,7 @@ class PFFLApp {
   }
 
   renderLiveMatchup(matchupIdx = 0) {
-    const matchups = (this.liveScoringData.matchup) || [];
+    const matchups = this.getMatchupsForViewingWeek();
     if (!matchups[matchupIdx]) return;
 
     const m = matchups[matchupIdx];
@@ -1484,24 +1514,50 @@ class PFFLApp {
       this.bench.push(playerItem);
     });
 
-    // Auto-assign starters for initial load based on strict slots
+    // Auto-assign starters for initial load by extracting EXACT submitted lineup from MFL liveScoring
+    let actualStarterIds = [];
+    if (this.liveScoringData && this.liveScoringData.matchup) {
+        for (const matchup of this.liveScoringData.matchup) {
+            const fran = (matchup.franchise || []).find(f => f.id === this.activeFranchiseId);
+            if (fran && fran.players && fran.players.player) {
+                fran.players.player.forEach(p => {
+                    if (p.status === 'starter') actualStarterIds.push(p.id);
+                });
+            }
+        }
+    }
+
     const slotsToFill = ['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'FLEX', 'TE', 'K', 'DST'];
     slotsToFill.forEach(slot => {
         let basePos = slot.replace(/[0-9]/g, '');
+        let pIndex = -1;
+        
         if (slot === 'FLEX') {
-            let flexIdx = this.bench.findIndex(p => ['RB', 'WR', 'TE'].includes(p.pos));
-            if (flexIdx > -1) {
-                let [p] = this.bench.splice(flexIdx, 1);
-                p.assignedSlot = slot;
-                this.starters.push(p);
-            }
+            pIndex = this.bench.findIndex(p => actualStarterIds.includes(p.id) && ['RB', 'WR', 'TE'].includes(p.pos));
         } else {
-            let idx = this.bench.findIndex(p => p.pos === basePos);
-            if (idx > -1) {
-                let [p] = this.bench.splice(idx, 1);
-                p.assignedSlot = slot;
-                this.starters.push(p);
-            }
+            pIndex = this.bench.findIndex(p => actualStarterIds.includes(p.id) && p.pos === basePos);
+        }
+
+        if (pIndex > -1) {
+            let [p] = this.bench.splice(pIndex, 1);
+            p.assignedSlot = slot;
+            
+            // Remove the ID from the list so if they have 2 RBs starting, the first fulfills RB1, second fulfills RB2.
+            let idIdx = actualStarterIds.indexOf(p.id);
+            if (idIdx > -1) actualStarterIds.splice(idIdx, 1);
+            
+            this.starters.push(p);
+        } else {
+            this.starters.push({
+                id: 'empty-' + slot,
+                name: 'Empty Slot',
+                pos: slot,
+                team: 'N/A',
+                proj: '0.0',
+                diff: 0,
+                assignedSlot: slot,
+                isEmpty: true
+            });
         }
     });
 
@@ -1564,6 +1620,14 @@ class PFFLApp {
   }
 
   createRosterRowHTML(p, currentState) {
+    if (p.isEmpty) {
+      return `
+      <tr style="background-color: rgba(0,0,0,0.3); color: var(--text-muted);">
+        <td style="width:40px; font-weight:700;">${p.assignedSlot}</td>
+        <td colspan="5" style="padding-left:15px; font-style:italic;">Empty Roster Slot</td>
+      </tr>`;
+    }
+
     let availSlots = ['Bench'];
     if (p.pos === 'QB') availSlots = ['QB', 'Bench'];
     if (p.pos === 'RB') availSlots = ['RB1', 'RB2', 'FLEX', 'Bench'];

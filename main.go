@@ -32,6 +32,7 @@ func main() {
 	fetchAndSave(fmt.Sprintf("%s?TYPE=rosters&L=%s&JSON=1", BaseURL, LeagueID), filepath.Join(DocsData, "rosters.json"))
 	fetchAndSave(fmt.Sprintf("%s?TYPE=transactions&L=%s&JSON=1", BaseURL, LeagueID), filepath.Join(DocsData, "transactions.json"))
 	fetchAndSave(fmt.Sprintf("%s?TYPE=liveScoring&L=%s&JSON=1", BaseURL, LeagueID), filepath.Join(DocsData, "liveScoring.json"))
+	fetchAndSave(fmt.Sprintf("%s?TYPE=schedule&L=%s&JSON=1", BaseURL, LeagueID), filepath.Join(DocsData, "schedule.json"))
 	fetchAndSave(fmt.Sprintf("%s?TYPE=projectedScores&L=%s&JSON=1", BaseURL, LeagueID), filepath.Join(DocsData, "projectedScores.json"))
 
 	// 2. Collect All Roster & Live Scoring Player IDs
