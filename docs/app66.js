@@ -1519,6 +1519,7 @@ class PFFLApp {
   // PAGE 2: ROSTER & LINEUP SUBMITTER
   // -------------------------------------------------------------
   renderRoster() {
+   try {
     const franchises = (this.rostersData.franchise) || [];
     const myFranchise = franchises.find(f => f.id === this.activeFranchiseId);
 
@@ -1566,31 +1567,45 @@ class PFFLApp {
         for (const matchup of this.liveScoringData.matchup) {
             const fran = (matchup.franchise || []).find(f => f.id === this.activeFranchiseId);
             if (fran && fran.players && fran.players.player) {
-                fran.players.player.forEach(p => {
+                // MFL JSON quirk: if only 1 player, it's an object instead of array
+                const playerArray = Array.isArray(fran.players.player) ? fran.players.player : [fran.players.player];
+                playerArray.forEach(p => {
                     if (p.status === 'starter') actualStarterIds.push(p.id);
                 });
             }
         }
     }
 
+    const isFallbackMode = actualStarterIds.length === 0;
     const slotsToFill = ['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'FLEX', 'TE', 'K', 'DST'];
+    
     slotsToFill.forEach(slot => {
         let basePos = slot.replace(/[0-9]/g, '');
         let pIndex = -1;
         
-        if (slot === 'FLEX') {
-            pIndex = this.bench.findIndex(p => actualStarterIds.includes(p.id) && ['RB', 'WR', 'TE'].includes(p.pos));
+        if (isFallbackMode) {
+            // Fallback: auto-fill best available players if liveScoring hasn't populated yet
+            if (slot === 'FLEX') {
+                pIndex = this.bench.findIndex(p => ['RB', 'WR', 'TE'].includes(p.pos));
+            } else {
+                pIndex = this.bench.findIndex(p => p.pos === basePos);
+            }
         } else {
-            pIndex = this.bench.findIndex(p => actualStarterIds.includes(p.id) && p.pos === basePos);
+            if (slot === 'FLEX') {
+                pIndex = this.bench.findIndex(p => actualStarterIds.includes(p.id) && ['RB', 'WR', 'TE'].includes(p.pos));
+            } else {
+                pIndex = this.bench.findIndex(p => actualStarterIds.includes(p.id) && p.pos === basePos);
+            }
         }
 
         if (pIndex > -1) {
             let [p] = this.bench.splice(pIndex, 1);
             p.assignedSlot = slot;
             
-            // Remove the ID from the list so if they have 2 RBs starting, the first fulfills RB1, second fulfills RB2.
-            let idIdx = actualStarterIds.indexOf(p.id);
-            if (idIdx > -1) actualStarterIds.splice(idIdx, 1);
+            if (!isFallbackMode) {
+                let idIdx = actualStarterIds.indexOf(p.id);
+                if (idIdx > -1) actualStarterIds.splice(idIdx, 1);
+            }
             
             this.starters.push(p);
         } else {
@@ -1608,6 +1623,7 @@ class PFFLApp {
     });
 
     this.renderRosterTables();
+   } catch(e) { console.error("renderRoster error: ", e); }
   }
 
   renderRosterTables() {
