@@ -198,6 +198,12 @@ class PFFLApp {
         const animate = () => {
             if (!document.body.contains(canvas)) return;
             
+            // Fix disappearing drops: dynamically update bounds if DOM content pushed the height down
+            if (canvas.width !== canvas.offsetWidth || canvas.height !== canvas.offsetHeight) {
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+            }
+            
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
             ctx.shadowColor = 'rgba(0,0,0,0.6)';
@@ -221,7 +227,7 @@ class PFFLApp {
                 let d = drops[i];
                 
                 if (d.state === 0) { // STRETCHING
-                    d.speed += 0.04; 
+                    d.speed += 0.012; // Viscous mass gathers much slower
                     d.stretch += d.speed;
                     
                     let tipY = d.poolStartY + d.stretch;
@@ -262,7 +268,8 @@ class PFFLApp {
                     }
 
                     // 4. AERODYNAMIC OSCILLATION (Teardrop -> Sphere -> Oval -> Sphere)
-                    d.dropSpeed += 0.2; // Gravity
+                    d.dropSpeed += 0.12; // Slower gravity
+                    if (d.dropSpeed > 8) d.dropSpeed = 8; // Terminal velocity cap
                     d.dropY += d.dropSpeed;
                     
                     let scaleX = 1.0;
