@@ -152,13 +152,17 @@ class PFFLApp {
         };
 
         const resizeCanvas = () => {
-            if (canvas.offsetWidth > 0 && canvas.width !== canvas.offsetWidth) {
+            if (canvas.offsetWidth > 0 && (canvas.width !== canvas.offsetWidth || canvas.height !== canvas.offsetHeight || pools.length === 0)) {
                 canvas.width = canvas.offsetWidth;
                 canvas.height = canvas.offsetHeight;
                 recalculateGeometry();
             }
         };
+        
+        // Force initial dimensions regardless of CSS defaults to guarantee recalculateGeometry runs
+        canvas.width = 0; 
         resizeCanvas();
+        
         window.addEventListener('resize', resizeCanvas);
 
         const spawnDrop = () => {
