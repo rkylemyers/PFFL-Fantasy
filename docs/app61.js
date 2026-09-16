@@ -99,129 +99,214 @@ class PFFLApp {
             panel.style.position = 'relative';
         }
 
+        // Push all panel content above the blood
+        Array.from(panel.children).forEach(child => {
+            if (getComputedStyle(child).position === 'static') {
+                child.style.position = 'relative';
+            }
+            if (!child.style.zIndex || child.style.zIndex < 2) {
+                child.style.zIndex = '2';
+            }
+        });
 
-        // Dedicated blood canvas sitting entirely behind content via global CSS z-index rules
-        const canvas = document.createElement('div');
-        canvas.className = 'blood-canvas';
+        // Dedicated TRUE HTML5 Canvas for mathematically perfect fluid simulation
+        const canvas = document.createElement('canvas');
         canvas.style.position = 'absolute';
         canvas.style.top = '0'; canvas.style.left = '0';
         canvas.style.width = '100%'; canvas.style.height = '100%';
+        canvas.style.zIndex = '0'; // Behind content
         canvas.style.pointerEvents = 'none';
-        canvas.style.overflow = 'hidden';
-        canvas.style.filter = "url('#gooey-blood') drop-shadow(0px 3px 2px rgba(0,0,0,0.6))";
         panel.insertBefore(canvas, panel.firstChild);
 
-        const columns = [];
-        const numBlobs = 35; // Dense ceiling
+        const resizeCanvas = () => {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        };
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        const ctx = canvas.getContext('2d');
+        const drops = [];
+        const ceilingHeight = 12;
         
-        for (let i = 0; i < numBlobs; i++) {
-            const blob = document.createElement('div');
-            blob.style.position = 'absolute';
-            blob.style.top = '-2px';
+        // 1. POOLING LOGIC: Create 2-3 logical deep pooling zones per panel
+        const numPools = Math.floor(Math.random() * 2) + 2; 
+        const pools = [];
+        for (let i = 0; i < numPools; i++) {
+            let px;
+            if (i === 0) px = Math.random() * (canvas.width * 0.25) + 10; 
+            else if (i === 1) px = canvas.width - (Math.random() * (canvas.width * 0.25) + 10); 
+            else px = (canvas.width * 0.3) + (Math.random() * (canvas.width * 0.4)); 
             
-            let leftPos;
-            if (i < 8) leftPos = (Math.random() * 12); 
-            else if (i >= 8 && i < 16) leftPos = 88 + (Math.random() * 12); 
-            else leftPos = Math.random() * 100; 
-            
-            blob.style.left = `${leftPos}%`;
-            blob.style.width = `${Math.random() * 15 + 5}%`; // Massive heavy pools
-            blob.style.height = '0px';
-            blob.style.backgroundColor = '#660000'; 
-            blob.style.opacity = '0.95'; // Darker, heavier volume
-            
-            const r1 = Math.random() * 30 + 40;
-            const r2 = Math.random() * 30 + 40;
-            blob.style.borderRadius = `0 0 ${r1}% ${r2}%`;
-            blob.style.transition = 'height 3s ease-in-out';
-            
-            
-            canvas.appendChild(blob);
-            columns.push(blob);
-
-            const distFromEdge = Math.min(leftPos, 100 - leftPos); 
-            let baseHeight = distFromEdge < 20 ? 45 : 20; // Deep heavy pooling
-            let targetHeight = Math.max(10, baseHeight + (Math.random() * 20 - 10));
-
-            const delay = distFromEdge * 20 + (Math.random() * 800);
-            
-            setTimeout(() => {
-                blob.style.height = targetHeight + 'px';
-                blob.dataset.baseHeight = targetHeight;
-            }, delay);
+            pools.push({
+                x: px,
+                depth: Math.random() * 12 + 12, // 12-24px deep physical pool mass
+                width: Math.random() * 40 + 35  // 35-75px wide spread
+            });
         }
 
-        const spawnDroplet = () => {
-            if (!document.body.contains(canvas)) return;
+        // Generate the static ceiling geometry reflecting the physical pools
+        const ceilingPoints = [];
+        for(let i = 0; i <= canvas.width + 15; i += 5) {
+            let y = ceilingHeight + (Math.random() * 4 - 2); 
+            for (let p of pools) {
+                let dist = Math.abs(i - p.x);
+                if (dist < p.width) {
+                    y += (Math.cos((dist / p.width) * Math.PI) + 1) * 0.5 * p.depth;
+                }
+            }
+            ceilingPoints.push({ x: i, y: y });
+        }
 
-            const anchor = columns[Math.floor(Math.random() * columns.length)];
-            if (!anchor || !anchor.dataset.baseHeight) {
-                setTimeout(spawnDroplet, 500);
+        const spawnDrop = () => {
+            if (!document.body.contains(canvas)) return;
+            
+            // Enforce logical physics: ONLY spawn drops from the established pools
+            let pool = pools[Math.floor(Math.random() * pools.length)];
+            
+            let isActivelyDripping = drops.some(d => Math.abs(d.x - pool.x) < 10 && d.state === 0);
+            if (isActivelyDripping) {
+                setTimeout(spawnDrop, 1500); 
                 return;
             }
 
-            const baseH = parseFloat(anchor.dataset.baseHeight);
+            let startY = ceilingHeight;
+            let closestPoint = ceilingPoints.find(pt => Math.abs(pt.x - pool.x) <= 5);
+            if (closestPoint) startY = closestPoint.y - 2;
+
+            drops.push({
+                x: pool.x,
+                radius: Math.random() * 2 + 5, // 5-7px radius (10-14px thick drops)
+                baseW: pool.width * 0.35, 
+                stretch: 0,
+                maxStretch: Math.random() * 40 + 50, // 50-90px deep stretch before snap
+                speed: 0.18, 
+                state: 0, 
+                dropY: 0,
+                dropSpeed: 0,
+                recoil: 0, 
+                poolStartY: startY,
+                fallFrames: 0
+            });
             
-            anchor.style.transition = 'height 2.5s ease-in';
-            anchor.style.height = (baseH + 25) + 'px';
-
-            setTimeout(() => {
-                anchor.style.transition = 'height 0.4s ease-out';
-                anchor.style.height = baseH + 'px';
-
-                const droplet = document.createElement('div');
-                droplet.style.position = 'absolute';
-                droplet.style.top = (baseH + 5) + 'px';
-                
-                const anchorLeft = parseFloat(anchor.style.left);
-                const anchorWidth = parseFloat(anchor.style.width);
-                const dropWidth = Math.random() * 6 + 7; // 7-13px (no small drops) // Thick streaks (4-12px)
-                droplet.style.left = `calc(${anchorLeft + (anchorWidth/2)}% - ${dropWidth/2}px)`;
-                droplet.style.width = dropWidth + 'px'; 
-                droplet.style.height = (Math.random() * 20 + 10) + 'px';
-                droplet.style.backgroundColor = '#660000';
-                droplet.style.opacity = '0.95';
-                droplet.style.borderRadius = '50%';
-                
-                
-                const duration = Math.random() * 8 + 8; // 8 to 16 seconds (slower, thick syrupy fall)
-                droplet.style.transition = `top ${duration}s linear, opacity 0.5s`;
-                droplet.style.animation = `fluidOscillation ${duration}s ease-in-out forwards`;
-                
-                canvas.appendChild(droplet);
-
-                setTimeout(() => {
-                    droplet.style.top = '100%'; 
-                    
-                }, 50);
-
-                setTimeout(() => {
-                    if (canvas.contains(droplet)) {
-                        droplet.style.opacity = '0';
-                        setTimeout(() => droplet.remove(), 500);
-                    }
-                }, duration * 1000);
-
-            }, 3000);
-
-            // Brutally fast spawn rate for MORE BLOOD
-            setTimeout(spawnDroplet, Math.random() * 3000 + 1500); 
+            setTimeout(spawnDrop, Math.random() * 6000 + 4000); 
         };
         
-        // Spawn multiple concurrent drip engines for massive volume
-        setTimeout(spawnDroplet, 4000);
-        setTimeout(spawnDroplet, 4500);
-        setTimeout(spawnDroplet, 5000);
+        setTimeout(spawnDrop, 1000);
+        setTimeout(spawnDrop, 4500);
+
+        const animate = () => {
+            if (!document.body.contains(canvas)) return;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.shadowColor = 'rgba(0,0,0,0.6)';
+            ctx.shadowOffsetY = 2;
+            ctx.shadowBlur = 3;
+            ctx.fillStyle = '#660000';
+
+            // Draw ceiling
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            for(let i=0; i<ceilingPoints.length; i++) {
+                if (ceilingPoints[i].x <= canvas.width + 15) {
+                    ctx.lineTo(ceilingPoints[i].x, ceilingPoints[i].y);
+                }
+            }
+            ctx.lineTo(canvas.width, 0);
+            ctx.fill();
+
+            // Process physics
+            for (let i = drops.length - 1; i >= 0; i--) {
+                let d = drops[i];
+                
+                if (d.state === 0) { // STRETCHING
+                    d.speed += 0.04; 
+                    d.stretch += d.speed;
+                    
+                    let tipY = d.poolStartY + d.stretch;
+                    
+                    // 2. EXPONENTIAL CAPILLARY THREADING (Power of 5)
+                    let stringW = d.baseW * Math.pow(Math.max(0, 1 - (d.stretch / d.maxStretch)), 5); 
+                    let cp1Y = d.poolStartY + (d.stretch * 0.1); 
+                    let cp2Y = tipY - (d.radius * 2); 
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(d.x - d.baseW, d.poolStartY - 5);
+                    
+                    // Continuous fluid body pinching to a mathematical thread
+                    ctx.bezierCurveTo(d.x - stringW, cp1Y, d.x - stringW, cp2Y, d.x - d.radius, tipY - d.radius);
+                    ctx.arc(d.x, tipY - d.radius, d.radius, Math.PI, 0, true); 
+                    ctx.bezierCurveTo(d.x + stringW, cp2Y, d.x + stringW, cp1Y, d.x + d.baseW, d.poolStartY - 5);
+                    ctx.fill();
+
+                    // Snap trigger (once the thread reaches 0 thickness visually)
+                    if (d.stretch >= d.maxStretch) {
+                        d.state = 1; 
+                        d.dropY = tipY - d.radius; 
+                        d.dropSpeed = d.speed; 
+                        d.recoil = d.stretch; 
+                        d.fallFrames = 0; 
+                    }
+                } 
+                else if (d.state === 1) { // FALLING & RECOILING
+                    d.fallFrames++;
+
+                    // 3. THE CEILING RECOIL
+                    if (d.recoil > 0.5) {
+                        d.recoil *= 0.65; // Aggressive spring friction 
+                        ctx.beginPath();
+                        ctx.moveTo(d.x - d.baseW, d.poolStartY - 5);
+                        ctx.quadraticCurveTo(d.x, d.poolStartY + d.recoil, d.x + d.baseW, d.poolStartY - 5);
+                        ctx.fill();
+                    }
+
+                    // 4. AERODYNAMIC OSCILLATION (Teardrop -> Sphere -> Oval -> Sphere)
+                    d.dropSpeed += 0.2; // Gravity
+                    d.dropY += d.dropSpeed;
+                    
+                    let scaleX = 1.0;
+                    let scaleY = 1.0;
+                    let tail = 0;
+                    
+                    if (d.fallFrames < 15) {
+                        // Phase 1: Heavy Teardrop snapping back into a sphere
+                        let t = d.fallFrames / 15; // 0 to 1
+                        tail = d.radius * 4 * (1 - Math.pow(t, 2)); 
+                        scaleX = 0.85 + (0.15 * t); 
+                        scaleY = 1.25 - (0.25 * t); 
+                    } else if (d.fallFrames < 45) {
+                        // Phase 2: Sphere flattening into sideways oval
+                        let t = (d.fallFrames - 15) / 30; // 0 to 1
+                        let bulge = Math.sin(t * Math.PI); // Sin wave curve
+                        scaleX = 1.0 + (0.25 * bulge); 
+                        scaleY = 1.0 - (0.15 * bulge); 
+                    }
+                    
+                    ctx.beginPath();
+                    ctx.ellipse(d.x, d.dropY, d.radius * scaleX, d.radius * scaleY, 0, 0, Math.PI, false); 
+                    
+                    if (tail > 0.5) {
+                        ctx.quadraticCurveTo(d.x - (d.radius * scaleX), d.dropY - (tail * 0.4), d.x, d.dropY - tail); 
+                        ctx.quadraticCurveTo(d.x + (d.radius * scaleX), d.dropY - (tail * 0.4), d.x + (d.radius * scaleX), d.dropY); 
+                    } else {
+                        ctx.ellipse(d.x, d.dropY, d.radius * scaleX, d.radius * scaleY, 0, Math.PI, Math.PI * 2, false);
+                    }
+                    ctx.fill();
+
+                    if (d.dropY > canvas.height + 50) {
+                        drops.splice(i, 1);
+                    }
+                }
+            }
+
+            requestAnimationFrame(animate);
+        };
         
-
-
-        setTimeout(() => {
-            spawnDroplet();
-            setTimeout(spawnDroplet, 2500);
-        }, 5000);
+        requestAnimationFrame(animate);
     });
   }
-  
+
   populateSettings() {
     const select = document.getElementById("active-franchise-select");
     const btnSave = document.getElementById("btn-save-franchise");
