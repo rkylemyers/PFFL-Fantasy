@@ -111,7 +111,7 @@ class PFFLApp {
         panel.insertBefore(canvas, panel.firstChild);
 
         const columns = [];
-        const numBlobs = 20; 
+        const numBlobs = 35; // Dense ceiling
         
         for (let i = 0; i < numBlobs; i++) {
             const blob = document.createElement('div');
@@ -119,15 +119,15 @@ class PFFLApp {
             blob.style.top = '-2px';
             
             let leftPos;
-            if (i < 4) leftPos = (Math.random() * 10); 
-            else if (i >= 4 && i < 8) leftPos = 90 + (Math.random() * 10); 
+            if (i < 8) leftPos = (Math.random() * 12); 
+            else if (i >= 8 && i < 16) leftPos = 88 + (Math.random() * 12); 
             else leftPos = Math.random() * 100; 
             
             blob.style.left = `${leftPos}%`;
-            blob.style.width = `${Math.random() * 4 + 2}%`; // Very narrow pools
+            blob.style.width = `${Math.random() * 15 + 5}%`; // Massive heavy pools
             blob.style.height = '0px';
-            blob.style.backgroundColor = '#5a0000'; // Flat dark realism
-            blob.style.opacity = '0.75';
+            blob.style.backgroundColor = '#5a0000'; 
+            blob.style.opacity = '0.85'; // Darker, heavier volume
             
             const r1 = Math.random() * 30 + 40;
             const r2 = Math.random() * 30 + 40;
@@ -138,10 +138,10 @@ class PFFLApp {
             columns.push(blob);
 
             const distFromEdge = Math.min(leftPos, 100 - leftPos); 
-            let baseHeight = distFromEdge < 20 ? 15 : 6; // Thin pooling
-            let targetHeight = Math.max(3, baseHeight + (Math.random() * 8 - 4));
+            let baseHeight = distFromEdge < 20 ? 45 : 20; // Deep heavy pooling
+            let targetHeight = Math.max(10, baseHeight + (Math.random() * 20 - 10));
 
-            const delay = distFromEdge * 30 + (Math.random() * 800);
+            const delay = distFromEdge * 20 + (Math.random() * 800);
             
             setTimeout(() => {
                 blob.style.height = targetHeight + 'px';
@@ -154,14 +154,14 @@ class PFFLApp {
 
             const anchor = columns[Math.floor(Math.random() * columns.length)];
             if (!anchor || !anchor.dataset.baseHeight) {
-                setTimeout(spawnDroplet, 1000);
+                setTimeout(spawnDroplet, 500);
                 return;
             }
 
             const baseH = parseFloat(anchor.dataset.baseHeight);
             
             anchor.style.transition = 'height 1.5s ease-in';
-            anchor.style.height = (baseH + 6) + 'px';
+            anchor.style.height = (baseH + 12) + 'px';
 
             setTimeout(() => {
                 anchor.style.transition = 'height 0.4s ease-out';
@@ -169,26 +169,26 @@ class PFFLApp {
 
                 const droplet = document.createElement('div');
                 droplet.style.position = 'absolute';
-                droplet.style.top = (baseH + 2) + 'px';
+                droplet.style.top = (baseH + 5) + 'px';
                 
                 const anchorLeft = parseFloat(anchor.style.left);
                 const anchorWidth = parseFloat(anchor.style.width);
-                const dropWidth = Math.random() * 2 + 1; // 1-3px ultra thin streaks
-                droplet.style.left = (anchorLeft + (anchorWidth/2)) + '%';
-                droplet.style.width = dropWidth + 'px'; // PX not %
-                droplet.style.height = (Math.random() * 10 + 5) + 'px';
+                const dropWidth = Math.random() * 8 + 4; // Thick streaks (4-12px)
+                droplet.style.left = `calc(${anchorLeft + (anchorWidth/2)}% - ${dropWidth/2}px)`;
+                droplet.style.width = dropWidth + 'px'; 
+                droplet.style.height = (Math.random() * 20 + 10) + 'px';
                 droplet.style.backgroundColor = '#5a0000';
-                droplet.style.opacity = '0.75';
+                droplet.style.opacity = '0.85';
                 droplet.style.borderRadius = '50%';
                 
-                const duration = Math.random() * 8 + 5; // Slower, more viscous fall
+                const duration = Math.random() * 6 + 4; // Faster, heavier fall
                 droplet.style.transition = `top ${duration}s linear, height ${duration}s ease-in, opacity 0.5s`;
                 
                 canvas.appendChild(droplet);
 
                 setTimeout(() => {
                     droplet.style.top = '100%'; 
-                    droplet.style.height = (parseFloat(droplet.style.height) + 20) + 'px'; // Streak stretch
+                    droplet.style.height = (parseFloat(droplet.style.height) + 40) + 'px'; // Viscous heavy stretch
                 }, 50);
 
                 setTimeout(() => {
@@ -200,8 +200,17 @@ class PFFLApp {
 
             }, 1500);
 
-            setTimeout(spawnDroplet, Math.random() * 3000 + 2000);
+            // Brutally fast spawn rate for MORE BLOOD
+            setTimeout(spawnDroplet, Math.random() * 1200 + 400); 
         };
+        
+        // Spawn multiple concurrent drip engines for massive volume
+        setTimeout(spawnDroplet, 4000);
+        setTimeout(spawnDroplet, 4500);
+        setTimeout(spawnDroplet, 5000);
+        setTimeout(spawnDroplet, 5500);
+        setTimeout(spawnDroplet, 6000);
+
 
         setTimeout(() => {
             spawnDroplet();
