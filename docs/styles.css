@@ -1103,9 +1103,9 @@ body.dark-theme {
 
 
 
-/* Opaque Content Blocks to hide blood dripping behind them */
+/* Semi-transparent Content Blocks so blood is visible but text remains legible */
 .play-item, .roster-table tbody tr, .setting-toggle-row {
-    background-color: #0f1218 !important;
+    background-color: rgba(15, 18, 24, 0.4) !important;
     border: 1px solid rgba(255,255,255,0.05);
     border-radius: 6px;
 }

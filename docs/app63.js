@@ -260,7 +260,7 @@ class PFFLApp {
 
                     // 3. THE CEILING RECOIL
                     if (d.recoil > 0.5) {
-                        d.recoil *= 0.65; // Aggressive spring friction 
+                        d.recoil *= 0.90; // Much slower, smoother spring retraction 
                         ctx.beginPath();
                         ctx.moveTo(d.x - d.baseW, d.poolStartY - 5);
                         ctx.quadraticCurveTo(d.x, d.poolStartY + d.recoil, d.x + d.baseW, d.poolStartY - 5);
