@@ -22,7 +22,8 @@ class PFFLApp {
     this.starters = [];
     this.bench = [];
     this.ir = [];
-
+    this.viewingWeek = 1;
+    this.currentLiveWeek = 1;
     this.init();
   }
 
@@ -118,49 +119,52 @@ class PFFLApp {
         canvas.style.pointerEvents = 'none';
         panel.insertBefore(canvas, panel.firstChild);
 
+        const ctx = canvas.getContext('2d');
+        const drops = [];
+        const ceilingHeight = 12;
+        let pools = [];
+        let ceilingPoints = [];
+        
+        const recalculateGeometry = () => {
+            pools = [];
+            ceilingPoints = [];
+            if (canvas.width === 0) return;
+            const numPools = Math.floor(Math.random() * 2) + 2; 
+            for (let i = 0; i < numPools; i++) {
+                let px;
+                if (i === 0) px = Math.random() * (canvas.width * 0.25) + 10; 
+                else if (i === 1) px = canvas.width - (Math.random() * (canvas.width * 0.25) + 10); 
+                else px = (canvas.width * 0.3) + (Math.random() * (canvas.width * 0.4)); 
+                
+                pools.push({ x: px, depth: Math.random() * 12 + 12, width: Math.random() * 40 + 35 });
+            }
+
+            for(let i = 0; i <= canvas.width + 15; i += 5) {
+                let y = ceilingHeight + (Math.random() * 4 - 2); 
+                for (let p of pools) {
+                    let dist = Math.abs(i - p.x);
+                    if (dist < p.width) {
+                        y += (Math.cos((dist / p.width) * Math.PI) + 1) * 0.5 * p.depth;
+                    }
+                }
+                ceilingPoints.push({ x: i, y: y });
+            }
+        };
+
         const resizeCanvas = () => {
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
+            if (canvas.offsetWidth > 0 && canvas.width !== canvas.offsetWidth) {
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+                recalculateGeometry();
+            }
         };
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
-        const ctx = canvas.getContext('2d');
-        const drops = [];
-        const ceilingHeight = 12;
-        
-        // 1. POOLING LOGIC: Create 2-3 logical deep pooling zones per panel
-        const numPools = Math.floor(Math.random() * 2) + 2; 
-        const pools = [];
-        for (let i = 0; i < numPools; i++) {
-            let px;
-            if (i === 0) px = Math.random() * (canvas.width * 0.25) + 10; 
-            else if (i === 1) px = canvas.width - (Math.random() * (canvas.width * 0.25) + 10); 
-            else px = (canvas.width * 0.3) + (Math.random() * (canvas.width * 0.4)); 
-            
-            pools.push({
-                x: px,
-                depth: Math.random() * 12 + 12, // 12-24px deep physical pool mass
-                width: Math.random() * 40 + 35  // 35-75px wide spread
-            });
-        }
-
-        // Generate the static ceiling geometry reflecting the physical pools
-        const ceilingPoints = [];
-        for(let i = 0; i <= canvas.width + 15; i += 5) {
-            let y = ceilingHeight + (Math.random() * 4 - 2); 
-            for (let p of pools) {
-                let dist = Math.abs(i - p.x);
-                if (dist < p.width) {
-                    y += (Math.cos((dist / p.width) * Math.PI) + 1) * 0.5 * p.depth;
-                }
-            }
-            ceilingPoints.push({ x: i, y: y });
-        }
-
         const spawnDrop = () => {
             if (!document.body.contains(canvas)) return;
             
+            if (pools.length === 0) return; // Not initialized yet
             // Enforce logical physics: ONLY spawn drops from the established pools
             let pool = pools[Math.floor(Math.random() * pools.length)];
             
@@ -199,10 +203,12 @@ class PFFLApp {
             if (!document.body.contains(canvas)) return;
             
             // Fix disappearing drops: dynamically update bounds if DOM content pushed the height down
-            if (canvas.width !== canvas.offsetWidth || canvas.height !== canvas.offsetHeight) {
+            if (canvas.offsetWidth > 0 && (canvas.width !== canvas.offsetWidth || canvas.height !== canvas.offsetHeight)) {
                 canvas.width = canvas.offsetWidth;
                 canvas.height = canvas.offsetHeight;
+                recalculateGeometry();
             }
+            if (canvas.width === 0) return; // Wait until visible
             
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
@@ -961,9 +967,13 @@ class PFFLApp {
   }
 
   renderAll() {
+    // Set actual week
+    const rosterWeek = this.rostersData.franchise && this.rostersData.franchise[0] ? parseInt(this.rostersData.franchise[0].week) : 1;
+    this.currentLiveWeek = rosterWeek;
+    if (this.viewingWeek === 1) this.viewingWeek = rosterWeek;
+    
     document.getElementById("last-sync-timestamp").textContent = `LAST SYNC: ${this.lastSyncTime}`;
-    this.renderMatchupStrip();
-    this.renderLiveMatchup(0);
+    this.updateWeekView();
     this.renderRoster();
     this.renderTrendsAndReplacements();
     this.renderDuesAndLedger();
