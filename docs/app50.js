@@ -99,22 +99,29 @@ class PFFLApp {
             panel.style.position = 'relative';
         }
 
-        // Push all panel content above the blood
-        Array.from(panel.children).forEach(child => {
-            if (getComputedStyle(child).position === 'static') {
-                child.style.position = 'relative';
-            }
-            if (!child.style.zIndex || child.style.zIndex < 2) {
-                child.style.zIndex = '2';
-            }
-        });
+        // Inject the Gooey SVG filter if it doesn't exist
+        if (!document.getElementById('gooey-blood-filter-svg')) {
+            const svgGoo = document.createElement('div');
+            svgGoo.innerHTML = `
+                <svg id="gooey-blood-filter-svg" style="width:0;height:0;position:absolute;">
+                    <defs>
+                        <filter id="gooey-blood">
+                            <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
+                            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -9" result="goo" />
+                            <feBlend in="SourceGraphic" in2="goo" />
+                        </filter>
+                    </defs>
+                </svg>
+            `;
+            document.body.appendChild(svgGoo);
+        }
 
-        // Dedicated blood canvas sitting behind content
+        // Dedicated blood canvas sitting entirely behind content via global CSS z-index rules
         const canvas = document.createElement('div');
+        canvas.className = 'blood-canvas';
         canvas.style.position = 'absolute';
         canvas.style.top = '0'; canvas.style.left = '0';
         canvas.style.width = '100%'; canvas.style.height = '100%';
-        canvas.style.zIndex = '0'; // Behind content
         canvas.style.pointerEvents = 'none';
         canvas.style.overflow = 'hidden';
         panel.insertBefore(canvas, panel.firstChild);
@@ -124,19 +131,19 @@ class PFFLApp {
         
         for (let i = 0; i < numBlobs; i++) {
             const blob = document.createElement('div');
+            blob.className = 'blood-blob';
             blob.style.position = 'absolute';
-            blob.style.top = '-2px';
+            blob.style.top = '-10px';
             
             // Randomly distribute, heavily favoring corners
             let leftPos;
-            if (i < 4) leftPos = Math.random() * 10; // Left corner bunch
-            else if (i >= 4 && i < 8) leftPos = 80 + (Math.random() * 15); // Right corner bunch
+            if (i < 4) leftPos = (Math.random() * 15) - 5; // Left corner bunch
+            else if (i >= 4 && i < 8) leftPos = 85 + (Math.random() * 15); // Right corner bunch
             else leftPos = Math.random() * 100; // Center spread
             
             blob.style.left = `${leftPos}%`;
-            blob.style.width = `${Math.random() * 15 + 8}%`; // Irregular wide blobs
+            blob.style.width = `${Math.random() * 20 + 12}%`; // Larger blobs to merge beautifully
             blob.style.height = '0px';
-            blob.style.backgroundColor = '#7a0000';
             
             // Asymmetrical fluid borders
             const r1 = Math.random() * 40 + 30;
@@ -144,7 +151,6 @@ class PFFLApp {
             const r3 = Math.random() * 40 + 30;
             const r4 = Math.random() * 40 + 30;
             blob.style.borderRadius = `0 0 ${r1}% ${r2}% / 0 0 ${r3}% ${r4}%`;
-            
             blob.style.transition = 'height 3s ease-in-out';
             
             canvas.appendChild(blob);
@@ -152,10 +158,9 @@ class PFFLApp {
 
             // Deeper pools in corners
             const distFromEdge = Math.min(leftPos, 100 - leftPos); 
-            let baseHeight = distFromEdge < 25 ? 40 : 15;
-            let targetHeight = Math.max(5, baseHeight + (Math.random() * 30 - 15));
+            let baseHeight = distFromEdge < 25 ? 45 : 18;
+            let targetHeight = Math.max(8, baseHeight + (Math.random() * 30 - 15));
 
-            // Corners pool first, center fills in later
             const delay = distFromEdge * 40 + (Math.random() * 1000);
             
             setTimeout(() => {
@@ -167,7 +172,6 @@ class PFFLApp {
         const spawnDroplet = () => {
             if (!document.body.contains(canvas)) return;
 
-            // Pick a random blob to drip from
             const anchor = columns[Math.floor(Math.random() * columns.length)];
             if (!anchor || !anchor.dataset.baseHeight) {
                 setTimeout(spawnDroplet, 1000);
@@ -176,38 +180,38 @@ class PFFLApp {
 
             const baseH = parseFloat(anchor.dataset.baseHeight);
             
-            // Surface tension buildup
+            // Surface tension buildup (viscous stretch)
             anchor.style.transition = 'height 1.5s ease-in';
-            anchor.style.height = (baseH + 15) + 'px';
+            anchor.style.height = (baseH + 20) + 'px';
 
             setTimeout(() => {
                 // Snap back
-                anchor.style.transition = 'height 0.4s ease-out';
+                anchor.style.transition = 'height 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
                 anchor.style.height = baseH + 'px';
 
                 // Droplet breaks off
                 const droplet = document.createElement('div');
+                droplet.className = 'blood-droplet';
                 droplet.style.position = 'absolute';
                 droplet.style.top = (baseH + 10) + 'px';
                 
                 const anchorLeft = parseFloat(anchor.style.left);
                 const anchorWidth = parseFloat(anchor.style.width);
-                const dropWidth = Math.random() * 2 + 1; // 1-3% wide streak
+                const dropWidth = Math.random() * 4 + 3; // Wider drops for better gooey merge
                 droplet.style.left = (anchorLeft + (anchorWidth/2) - (dropWidth/2)) + '%';
                 droplet.style.width = dropWidth + '%';
-                droplet.style.height = (Math.random() * 15 + 10) + 'px';
-                droplet.style.backgroundColor = '#7a0000';
+                droplet.style.height = (Math.random() * 20 + 15) + 'px';
                 droplet.style.borderRadius = '50%';
                 
                 // Fall physics
-                const duration = Math.random() * 6 + 4; // 4 to 10 seconds
-                droplet.style.transition = `top ${duration}s linear, height ${duration}s ease-in, opacity 0.5s`;
+                const duration = Math.random() * 5 + 3; // 3 to 8 seconds
+                droplet.style.transition = `top ${duration}s ease-in, height ${duration}s ease-in, opacity 0.5s`;
                 
                 canvas.appendChild(droplet);
 
                 setTimeout(() => {
                     droplet.style.top = '100%'; // Hit floor
-                    droplet.style.height = (parseFloat(droplet.style.height) + 50) + 'px'; // Stretch drastically
+                    droplet.style.height = (parseFloat(droplet.style.height) + 60) + 'px'; // Viscous stretch
                 }, 50);
 
                 setTimeout(() => {
@@ -219,7 +223,7 @@ class PFFLApp {
 
             }, 1500);
 
-            setTimeout(spawnDroplet, Math.random() * 3000 + 1500);
+            setTimeout(spawnDroplet, Math.random() * 2000 + 1000); // More frequent drops
         };
 
         setTimeout(() => {
