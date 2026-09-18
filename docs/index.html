@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260913_55">
+  <link rel="stylesheet" href="styles.css?v=20260913_56">
 </head>
 <body class="dark-theme">
   <!-- Top Global Navigation Bar -->
@@ -486,11 +486,24 @@
 
   </div>
 
+
+  <!-- PLAYER MODAL -->
+  <div id="player-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;">
+    <div style="background: var(--bg-card); border: 1px solid var(--accent-red); border-radius: 10px; width: 100%; max-width: 400px; padding: 20px; position: relative; box-shadow: 0 0 20px rgba(153, 0, 0, 0.5);">
+      <button onclick="document.getElementById('player-modal').style.display='none'" style="position: absolute; top: 10px; right: 10px; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; line-height: 1;">&times;</button>
+      <h2 id="modal-player-name" style="margin-top: 0; color: var(--accent-red); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; font-size: 1.5rem;">Player Name</h2>
+      <div id="modal-player-details" style="color: var(--text-main); line-height: 1.5;">
+        <!-- Filled by JS -->
+      </div>
+    </div>
+  </div>
+
   <!-- Notification Toast Container -->
+
   <div id="toast-container" class="toast-container"></div>
 
-  <!-- Scripts with cache buster v=20260913_55 -->
-  <script src="field.js?v=20260913_55"></script>
-  <script src="app74.js"></script>
+  <!-- Scripts with cache buster v=20260913_56 -->
+  <script src="field.js?v=20260913_56"></script>
+  <script src="app75.js"></script>
 </body>
 </html>

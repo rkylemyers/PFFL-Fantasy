@@ -31,14 +31,14 @@ func main() {
 	fetchAndSave(fmt.Sprintf("%s?TYPE=league&L=%s&JSON=1", BaseURL, LeagueID), filepath.Join(DocsData, "league.json"))
 	fetchAndSave(fmt.Sprintf("%s?TYPE=rosters&L=%s&JSON=1", BaseURL, LeagueID), filepath.Join(DocsData, "rosters.json"))
 	fetchAndSave(fmt.Sprintf("%s?TYPE=transactions&L=%s&JSON=1", BaseURL, LeagueID), filepath.Join(DocsData, "transactions.json"))
-	fetchAndSave(fmt.Sprintf("%s?TYPE=liveScoring&L=%s&JSON=1", BaseURL, LeagueID), filepath.Join(DocsData, "liveScoring.json"))
+	fetchAndSave(fmt.Sprintf("%s?TYPE=liveScoring&L=%s&DETAILS=1&JSON=1", BaseURL, LeagueID), filepath.Join(DocsData, "liveScoring.json"))
 	fetchAndSave(fmt.Sprintf("%s?TYPE=schedule&L=%s&JSON=1", BaseURL, LeagueID), filepath.Join(DocsData, "schedule.json"))
 	fetchAndSave(fmt.Sprintf("%s?TYPE=projectedScores&L=%s&JSON=1", BaseURL, LeagueID), filepath.Join(DocsData, "projectedScores.json"))
 
 	// Historical Fetching - fetch weeks 1 to 17 and save them locally
 	// We will attempt to fetch past weeks that might have data.
 	for w := 1; w <= 17; w++ {
-		fetchAndSave(fmt.Sprintf("%s?TYPE=liveScoring&L=%s&W=%d&JSON=1", BaseURL, LeagueID, w), filepath.Join(DocsData, fmt.Sprintf("liveScoring_W%d.json", w)))
+		fetchAndSave(fmt.Sprintf("%s?TYPE=liveScoring&L=%s&W=%d&DETAILS=1&JSON=1", BaseURL, LeagueID, w), filepath.Join(DocsData, fmt.Sprintf("liveScoring_W%d.json", w)))
 	}
 
 	// 2. Collect All Roster & Live Scoring Player IDs

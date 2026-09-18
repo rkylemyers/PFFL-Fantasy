@@ -347,22 +347,52 @@ class PFFLApp {
         <p><strong>NFL Matchup:</strong> <span style="color: ${isLive === 'true' ? 'var(--accent-yellow)' : 'white'};">${gameStatus}</span></p>
     `;
     
-    // Check if liveScoringData has detailed stats (usually populated during live games by MFL)
+    // Inject scoring breakdown from our generated cache
+    let foundDetailedStats = false;
     if (this.viewingWeek === this.currentLiveWeek && this.liveScoringData && this.liveScoringData.matchup) {
         for (const matchup of this.liveScoringData.matchup) {
             for (const fran of matchup.franchise || []) {
                 if (fran.players && fran.players.player) {
                     const found = fran.players.player.find(player => player.id === id);
                     if (found && found.updatedStats && found.updatedStats.trim() !== '') {
+                        foundDetailedStats = true;
                         breakdownHtml += `
                             <div style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
-                                <h4 style="margin: 0 0 5px 0; color: var(--accent-red);">Live Play Breakdown</h4>
+                                <h4 style="margin: 0 0 5px 0; color: var(--accent-red);">Scoring Breakdown</h4>
                                 <p style="font-size: 0.9rem; color: var(--text-muted);">${found.updatedStats}</p>
                             </div>
                         `;
                     }
                 }
             }
+        }
+    }
+    
+    // Fallback: If MFL didn't provide updatedStats (e.g. historical weeks), show our generated play logs!
+    if (!foundDetailedStats && this.playerHistoryCache && this.playerHistoryCache.has(id)) {
+        const cachedP = this.playerHistoryCache.get(id);
+        if (cachedP.last5Plays && cachedP.last5Plays.length > 0) {
+            breakdownHtml += `
+                <div style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
+                    <h4 style="margin: 0 0 10px 0; color: var(--accent-red);">Scoring Breakdown</h4>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+            `;
+            cachedP.last5Plays.forEach(play => {
+                breakdownHtml += `
+                    <div style="font-size: 0.85rem; padding: 6px; background: rgba(0,0,0,0.2); border-left: 2px solid var(--accent-cyan);">
+                        <div style="color: var(--text-muted); font-size: 0.7rem; margin-bottom: 2px;">${play.timeStamp}</div>
+                        <div style="color: white;">${play.desc}</div>
+                    </div>
+                `;
+            });
+            breakdownHtml += `</div></div>`;
+        } else if (cachedP.scoreNum === 0) {
+            breakdownHtml += `
+                <div style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
+                    <h4 style="margin: 0 0 5px 0; color: var(--accent-red);">Scoring Breakdown</h4>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); font-style: italic;">No scoring plays recorded.</p>
+                </div>
+            `;
         }
     }
     
@@ -1383,12 +1413,16 @@ class PFFLApp {
         timeSortWeight: timeSortWeight,
         isBigPlay: isBigPlay,
         upcomingGameInfo: upcomingGameInfo,
-        gameSecondsRemaining: parseInt(pObj.gameSecondsRemaining || "3600")
+        gameSecondsRemaining: parseInt(pObj.gameSecondsRemaining || "3600"),
+        status: pObj.status || 'nonstarter'
       };
       this.playerHistoryCache.set(pObj.id, finalPlayerObj);
       return finalPlayerObj;
     });
 
+    const startersPool = parsedPlayers.filter(p => p.status === 'starter');
+    const benchPool = parsedPlayers.filter(p => p.status !== 'starter');
+    
     const renderSlots = ['QB', 'RB', 'RB', 'WR', 'WR', 'FLEX', 'TE', 'K', 'DST'];
     const assignedLineup = new Array(9).fill(null);
     const usedIDs = new Set();
@@ -1396,7 +1430,7 @@ class PFFLApp {
     // First Pass: Assign Strict Positions
     renderSlots.forEach((slot, sIdx) => {
       if (slot !== 'FLEX') {
-        let match = parsedPlayers.find(p => !usedIDs.has(p.id) && p.pos === slot);
+        let match = startersPool.find(p => !usedIDs.has(p.id) && p.pos === slot);
         if (match) {
           usedIDs.add(match.id);
           assignedLineup[sIdx] = { ...match, displaySlot: slot };
@@ -1407,7 +1441,7 @@ class PFFLApp {
     // Second Pass: Assign FLEX
     renderSlots.forEach((slot, sIdx) => {
       if (slot === 'FLEX') {
-        let match = parsedPlayers.find(p => !usedIDs.has(p.id) && ['RB', 'WR', 'TE'].includes(p.pos));
+        let match = startersPool.find(p => !usedIDs.has(p.id) && ['RB', 'WR', 'TE'].includes(p.pos));
         if (match) {
           usedIDs.add(match.id);
           assignedLineup[sIdx] = { ...match, displaySlot: slot };
@@ -1415,11 +1449,11 @@ class PFFLApp {
       }
     });
 
-    // Third Pass: Fill any empty slots with remaining players (regardless of position) or empty placeholders
+    // Third Pass: Fill any empty slots with remaining starters
     renderSlots.forEach((slot, sIdx) => {
       if (!assignedLineup[sIdx]) {
         const defaultGame = sampleOpponents[sIdx % sampleOpponents.length];
-        let fallback = parsedPlayers.find(p => !usedIDs.has(p.id));
+        let fallback = startersPool.find(p => !usedIDs.has(p.id));
         if (fallback) {
           usedIDs.add(fallback.id);
           assignedLineup[sIdx] = { ...fallback, displaySlot: slot };
@@ -1433,10 +1467,20 @@ class PFFLApp {
       }
     });
 
+    // Process Bench
+    benchPool.sort((a,b) => b.scoreNum - a.scoreNum);
+    const benchLineup = benchPool.map(p => ({ ...p, displaySlot: 'BN' }));
+
+    if (benchLineup.length > 0) {
+        return [...assignedLineup, { isBenchSeparator: true }, ...benchLineup];
+    }
     return assignedLineup;
   }
 
   createLineupTotalRowHTML(p, isOpponent) {
+    if (p.isBenchSeparator) {
+        return `<div class="bench-divider" style="padding: 10px; margin-top: 10px; margin-bottom: 5px; text-align: center; font-weight: bold; font-size: 0.8rem; letter-spacing: 2px; color: var(--text-muted); border-top: 1px solid var(--border-color); background: rgba(0,0,0,0.15);">BENCH</div>`;
+    }
     let gameStatusHtml = `<span class="recent-logs-inline" style="font-size: 0.65rem; color: var(--text-muted);">${p.upcomingGameInfo || ''}</span>`;
     let isLive = false;
     let hasPossession = false;
@@ -1500,6 +1544,7 @@ class PFFLApp {
   getTeamAllPlays(startersList) {
     let allPlays = [];
     startersList.forEach(p => {
+      if (p.isBenchSeparator) return;
       if (p.scoreNum > 0 && p.last5Plays && p.last5Plays.length > 0) {
         p.last5Plays.forEach(play => {
           allPlays.push({
