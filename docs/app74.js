@@ -1018,7 +1018,10 @@ class PFFLApp {
           }
           
           try {
-              const url = `https://www44.myfantasyleague.com/2026/export?TYPE=liveScoring&L=44108&W=${this.viewingWeek}&JSON=1`;
+              // MFL blocks CORS for explicit week liveScoring requests from the browser.
+              // We must fetch from our locally synced static data files.
+              const bust = '?t=' + Date.now();
+              const url = `data/liveScoring_W${this.viewingWeek}.json${bust}`;
               const res = await fetch(url);
               const data = await res.json();
               if (data && data.liveScoring && data.liveScoring.matchup) {
@@ -1026,7 +1029,7 @@ class PFFLApp {
                   return JSON.parse(JSON.stringify(data.liveScoring.matchup));
               }
           } catch (e) {
-              console.warn("Failed to fetch historical week", this.viewingWeek, e);
+              console.warn("Failed to fetch historical week from local static files", this.viewingWeek, e);
           }
       }
 
