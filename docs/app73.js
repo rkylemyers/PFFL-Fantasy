@@ -1456,7 +1456,7 @@ class PFFLApp {
     }
 
     return `
-      <div class="play-item" data-id="${p.id}" style="cursor: pointer; position: relative; ${isLive ? 'border-left: 2px solid var(--accent-yellow);' : ''}" onclick="window.PFFL.showPlayerModal('${p.id}', '${p.name}', '${p.team}', '${p.pos}', '${score}', '${projScore}', '${isLive}')">
+      <div class="play-item" data-id="${p.id}" style="cursor: pointer; position: relative; ${isLive ? 'border-left: 2px solid var(--accent-yellow);' : ''}" onclick="window.PFFL.showPlayerModal('${p.id}', '${p.name}', '${p.team}', '${p.pos}', '${p.scoreStr}', '${(p.scoreNum + 10.5).toFixed(1)}', '${isLive}')">
         <div class="play-item-left">
           <span class="pos-pill ${p.displaySlot}">${p.displaySlot}</span>
           <div class="play-details">
