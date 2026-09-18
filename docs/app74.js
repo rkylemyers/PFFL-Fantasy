@@ -112,10 +112,11 @@ class PFFLApp {
 
         // Dedicated TRUE HTML5 Canvas for mathematically perfect fluid simulation
         const canvas = document.createElement('canvas');
+        canvas.className = 'blood-canvas';
         canvas.style.position = 'absolute';
         canvas.style.top = '0'; canvas.style.left = '0';
         canvas.style.width = '100%'; canvas.style.height = '100%';
-        canvas.style.zIndex = '0'; // Behind content
+        canvas.style.zIndex = '1'; 
         canvas.style.pointerEvents = 'none';
         panel.insertBefore(canvas, panel.firstChild);
 
@@ -989,26 +990,47 @@ class PFFLApp {
   // -------------------------------------------------------------
   // PAGE 1: LIVE SCORING & REVERSE CHRONOLOGICAL STREAM ENGINE
   // -------------------------------------------------------------
-  updateWeekView() {
+  async updateWeekView() {
       const disp = document.getElementById("display-current-week");
       if (disp) {
           disp.textContent = `Week ${this.viewingWeek}` + (this.viewingWeek === this.currentLiveWeek ? " (Live)" : "");
       }
       this.currentMatchupIndex = 0; // Reset index when changing weeks
       
-      const matchups = this.getMatchupsForViewingWeek();
-      console.log("UPDATE WEEK VIEW -> Week:", this.viewingWeek, "Matchups:", matchups);
+      const matchups = await this.getMatchupsForViewingWeek();
+      this.currentMatchupsCache = matchups;
+      console.log("UPDATE WEEK VIEW -> Week:", this.viewingWeek, "Matchups fetched:", matchups.length);
       
       this.renderMatchupStrip();
       this.renderLiveMatchup(this.currentMatchupIndex);
   }
 
-  getMatchupsForViewingWeek() {
-      // If we are looking at the current live week, use liveScoringData for active points
+  async getMatchupsForViewingWeek() {
       if (this.viewingWeek === this.currentLiveWeek && this.liveScoringData && this.liveScoringData.matchup) {
           return JSON.parse(JSON.stringify(this.liveScoringData.matchup));
       }
-      // Otherwise, use scheduleData for past/future scores
+      
+      // Try fetching historical data dynamically for past weeks
+      if (this.viewingWeek < this.currentLiveWeek) {
+          if (!this.historicalScoringCache) this.historicalScoringCache = new Map();
+          if (this.historicalScoringCache.has(this.viewingWeek)) {
+              return JSON.parse(JSON.stringify(this.historicalScoringCache.get(this.viewingWeek)));
+          }
+          
+          try {
+              const url = `https://www44.myfantasyleague.com/2026/export?TYPE=liveScoring&L=44108&W=${this.viewingWeek}&JSON=1`;
+              const res = await fetch(url);
+              const data = await res.json();
+              if (data && data.liveScoring && data.liveScoring.matchup) {
+                  this.historicalScoringCache.set(this.viewingWeek, data.liveScoring.matchup);
+                  return JSON.parse(JSON.stringify(data.liveScoring.matchup));
+              }
+          } catch (e) {
+              console.warn("Failed to fetch historical week", this.viewingWeek, e);
+          }
+      }
+
+      // Fallback: use scheduleData for future weeks (no player data exists yet)
       if (this.scheduleData && this.scheduleData.weeklySchedule) {
           const wSched = this.scheduleData.weeklySchedule.find(w => parseInt(w.week) === this.viewingWeek);
           if (wSched && wSched.matchup) {
@@ -1023,7 +1045,7 @@ class PFFLApp {
     if (!strip) return;
 
     const franchises = (this.leagueData.franchises && this.leagueData.franchises.franchise) || [];
-    let matchups = this.getMatchupsForViewingWeek();
+    let matchups = this.currentMatchupsCache || [];
     
     if (!matchups || matchups.length === 0) {
         strip.innerHTML = "<p>No matchup data available for this week.</p>";
@@ -1082,7 +1104,7 @@ class PFFLApp {
   }
 
   renderLiveMatchup(matchupIdx = 0) {
-    const matchups = this.getMatchupsForViewingWeek();
+    const matchups = this.currentMatchupsCache || [];
     if (!matchups[matchupIdx]) return;
 
     const m = matchups[matchupIdx];
