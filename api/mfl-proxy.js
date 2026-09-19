@@ -32,11 +32,23 @@ export default async function handler(req, res) {
 
   try {
     // ── STEP 1: Login to MFL ──────────────────────────────────────────────────
-    const loginUrl = `https://api.myfantasyleague.com/2026/login?USERNAME=${encodeURIComponent(username)}&PASSWORD=${encodeURIComponent(password)}&XML=1`;
-    const loginResp = await fetch(loginUrl, { method: 'GET' });
-    const loginXml = await loginResp.text();
+    // Use POST as MFL recommends. Don't follow redirects so we always read the raw XML.
+    const loginResp = await fetch('https://api.myfantasyleague.com/2026/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `USERNAME=${encodeURIComponent(username)}&PASSWORD=${encodeURIComponent(password)}&XML=1`,
+      redirect: 'manual'
+    });
+    
+    // If MFL redirects (3xx), grab the Set-Cookie header from the redirect response
+    let mflCookieHeader = loginResp.headers.get('set-cookie') || '';
+    const loginXml = loginResp.type === 'opaqueredirect' ? '' : await loginResp.text();
+    
+    console.log('MFL login status:', loginResp.status, loginResp.type);
+    console.log('MFL response body:', loginXml.substring(0, 300));
+    console.log('MFL cookie header:', mflCookieHeader.substring(0, 100));
 
-    // Parse the cookie name/value from the XML response
+    // Parse the cookie name/value from the XML response body
     // Expected success: <status cookie_name="MFL_USER_ID" cookie_value="xxxx" ...>
     const cookieNameMatch = loginXml.match(/cookie_name="([^"]+)"/);
     const cookieValueMatch = loginXml.match(/cookie_value="([^"]+)"/);

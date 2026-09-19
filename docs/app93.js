@@ -767,6 +767,7 @@ class PFFLApp {
                     body: JSON.stringify({ action: 'test_auth', username: user, password: pw })
                 });
                 const data = await resp.json();
+                console.log('MFL proxy full response:', JSON.stringify(data, null, 2));
                 btnTestAuth.disabled = false;
                 if (data.success) {
                     btnTestAuth.innerHTML = '<span>✅ Authenticated!</span>';
