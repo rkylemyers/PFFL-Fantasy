@@ -775,7 +775,7 @@ class PFFLApp {
                 } else {
                     btnTestAuth.innerHTML = '<span>❌ Auth Failed</span>';
                     btnTestAuth.style.backgroundColor = 'var(--accent-red, #ef4444)';
-                    this.showToast("❌ " + (data.error || "Authentication Failed. Check your credentials."));
+                    this.showToast("❌ MFL: " + (data.error || "Authentication Failed. Check your credentials."));
                 }
             } catch(e) {
                 btnTestAuth.disabled = false;

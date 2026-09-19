@@ -44,10 +44,12 @@ export default async function handler(req, res) {
     if (!cookieNameMatch || !cookieValueMatch) {
       // Login failed — return the raw error from MFL
       const mflError = loginXml.match(/<error>([^<]+)<\/error>/);
+      const errMsg = mflError ? mflError[1] : `Unexpected MFL response format`;
       return res.status(401).json({
         success: false,
-        error: mflError ? mflError[1] : 'Authentication failed. Please check your credentials.',
-        raw: loginXml
+        error: errMsg,
+        raw: loginXml,
+        hint: 'Use your MFL Account password (not your Franchise Access Code). Your username is your MFL login email or username.'
       });
     }
 
