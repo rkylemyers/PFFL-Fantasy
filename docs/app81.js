@@ -607,20 +607,25 @@ class PFFLApp {
     document.getElementById('modal-player-name').textContent = name;
     
     let gameStatus = this.getRealOpponentText(team);
+    
+    // Style adjustments for cleaner header layout
+    const nameEl = document.getElementById('modal-player-name');
+    if (nameEl) {
+        nameEl.style.borderBottom = 'none';
+        nameEl.style.paddingBottom = '0';
+        nameEl.style.marginBottom = '4px';
+    }
+
     let breakdownHtml = `
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 4px; text-align: center;">
-                <div style="font-size: 0.8rem; color: var(--text-muted);">Points</div>
-                <div style="font-size: 1.5rem; font-weight: bold; color: white;">${score}</div>
-            </div>
-            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 4px; text-align: center;">
-                <div style="font-size: 0.8rem; color: var(--text-muted);">Projected</div>
-                <div style="font-size: 1.5rem; font-weight: bold; color: var(--text-muted);">${projScore}</div>
+        <div style="font-size: 0.95rem; color: #94a3b8; margin-bottom: 15px; font-weight: 500;">
+            ${pos} &nbsp;•&nbsp; ${team} &nbsp;•&nbsp; <span style="color: ${isLive === 'true' ? 'var(--accent-yellow)' : '#e2e8f0'};">${gameStatus}</span>
+        </div>
+        <div style="margin-bottom: 20px;">
+            <div style="background: rgba(255,255,255,0.03); padding: 16px; border-radius: 8px; text-align: center; border: 1px solid rgba(255,255,255,0.08);">
+                <div style="font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; font-weight: 600;">Total Points</div>
+                <div style="font-family: 'SF Mono', 'Courier New', monospace; font-size: 2.2rem; font-weight: 800; color: white;">${score}</div>
             </div>
         </div>
-        <p><strong>Position:</strong> ${pos}</p>
-        <p><strong>NFL Team:</strong> ${team}</p>
-        <p><strong>NFL Matchup:</strong> <span style="color: ${isLive === 'true' ? 'var(--accent-yellow)' : 'white'};">${gameStatus}</span></p>
     `;
     
     // Inject scoring breakdown from our generated cache
