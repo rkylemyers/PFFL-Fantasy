@@ -1338,13 +1338,28 @@ class PFFLApp {
     }
   }
 
-  renderAll() {
-    // Set actual week from liveScoring.json (since it is the source of truth for the live matchups, unlike rosters.json which jumps ahead early)
+  async renderAll() {
     const liveWeek = this.liveScoringData && this.liveScoringData.week ? parseInt(this.liveScoringData.week) : 1;
     this.currentLiveWeek = liveWeek;
     if (this.viewingWeek === 1) this.viewingWeek = liveWeek;
     
     document.getElementById("last-sync-timestamp").textContent = `LAST SYNC: ${this.lastSyncTime}`;
+    
+    // Ensure ESPN game schedule is loaded synchronously for getRealOpponentText
+    if (!this.weeklyEspnGames) this.weeklyEspnGames = {};
+    if (!this.weeklyEspnGames[this.viewingWeek]) {
+        try {
+            const year = 2026;
+            const sbUrl = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week=${this.viewingWeek}&dates=${year}`;
+            const resp = await fetch(sbUrl);
+            const data = await resp.json();
+            this.weeklyEspnGames[this.viewingWeek] = data.events;
+            this.espnGames = data.events;
+        } catch(e) { console.warn("Failed to prefetch espn scoreboard", e); }
+    } else {
+        this.espnGames = this.weeklyEspnGames[this.viewingWeek];
+    }
+
     this.updateWeekView();
     this.renderRoster();
     this.renderTrendsAndReplacements();
@@ -1762,7 +1777,7 @@ class PFFLApp {
     const startersPool = parsedPlayers.filter(p => p.status === 'starter');
     const benchPool = parsedPlayers.filter(p => p.status !== 'starter');
     
-    const renderSlots = ['QB', 'RB', 'RB', 'WR', 'WR', 'FLEX', 'TE', 'K', 'DST'];
+    const renderSlots = ['QB', 'RB', 'RB', 'WR', 'WR', 'TE', 'FLEX', 'K', 'DST'];
     const assignedLineup = new Array(9).fill(null);
     const usedIDs = new Set();
     
@@ -1997,13 +2012,11 @@ class PFFLApp {
       this.bench.push(playerItem);
     });
 
-    // Auto-assign starters for initial load by extracting EXACT submitted lineup from MFL liveScoring
     let actualStarterIds = [];
     if (this.liveScoringData && this.liveScoringData.matchup) {
         for (const matchup of this.liveScoringData.matchup) {
             const fran = (matchup.franchise || []).find(f => f.id === this.activeFranchiseId);
             if (fran && fran.players && fran.players.player) {
-                // MFL JSON quirk: if only 1 player, it's an object instead of array
                 const playerArray = Array.isArray(fran.players.player) ? fran.players.player : [fran.players.player];
                 playerArray.forEach(p => {
                     if (p.status === 'starter') actualStarterIds.push(p.id);
@@ -2013,37 +2026,55 @@ class PFFLApp {
     }
 
     const isFallbackMode = actualStarterIds.length === 0;
-    const slotsToFill = ['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'FLEX', 'TE', 'K', 'DST'];
+    const slotsToFill = ['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'TE', 'FLEX', 'K', 'DST'];
+    const assignedStarters = new Array(9).fill(null);
     
-    slotsToFill.forEach(slot => {
+    // Pass 1: Strict positions
+    slotsToFill.forEach((slot, idx) => {
+        if (slot === 'FLEX') return;
         let basePos = slot.replace(/[0-9]/g, '');
         let pIndex = -1;
         
         if (isFallbackMode) {
-            // Fallback: auto-fill best available players if liveScoring hasn't populated yet
-            if (slot === 'FLEX') {
-                pIndex = this.bench.findIndex(p => ['RB', 'WR', 'TE'].includes(p.pos));
-            } else {
-                pIndex = this.bench.findIndex(p => p.pos === basePos);
-            }
+            pIndex = this.bench.findIndex(p => p.pos === basePos && !p.assignedSlot);
         } else {
-            if (slot === 'FLEX') {
-                pIndex = this.bench.findIndex(p => actualStarterIds.includes(p.id) && ['RB', 'WR', 'TE'].includes(p.pos));
-            } else {
-                pIndex = this.bench.findIndex(p => actualStarterIds.includes(p.id) && p.pos === basePos);
-            }
+            pIndex = this.bench.findIndex(p => actualStarterIds.includes(p.id) && p.pos === basePos && !p.assignedSlot);
         }
-
+        
         if (pIndex > -1) {
-            let [p] = this.bench.splice(pIndex, 1);
-            p.assignedSlot = slot;
-            
-            if (!isFallbackMode) {
-                let idIdx = actualStarterIds.indexOf(p.id);
-                if (idIdx > -1) actualStarterIds.splice(idIdx, 1);
-            }
-            
-            this.starters.push(p);
+            this.bench[pIndex].assignedSlot = slot;
+            assignedStarters[idx] = this.bench[pIndex];
+        }
+    });
+    
+    // Pass 2: Flex
+    slotsToFill.forEach((slot, idx) => {
+        if (slot !== 'FLEX') return;
+        let pIndex = -1;
+        
+        if (isFallbackMode) {
+            pIndex = this.bench.findIndex(p => ['RB', 'WR', 'TE'].includes(p.pos) && !p.assignedSlot);
+        } else {
+            pIndex = this.bench.findIndex(p => actualStarterIds.includes(p.id) && ['RB', 'WR', 'TE'].includes(p.pos) && !p.assignedSlot);
+        }
+        
+        if (pIndex > -1) {
+            this.bench[pIndex].assignedSlot = slot;
+            assignedStarters[idx] = this.bench[pIndex];
+        }
+    });
+    
+    // Filter bench to remove assigned starters
+    const finalBench = [];
+    this.bench.forEach(p => {
+        if (!p.assignedSlot) finalBench.push(p);
+    });
+    this.bench = finalBench;
+    
+    // Finalize starters array
+    slotsToFill.forEach((slot, idx) => {
+        if (assignedStarters[idx]) {
+            this.starters.push(assignedStarters[idx]);
         } else {
             this.starters.push({
                 id: 'empty-' + slot,
@@ -2155,7 +2186,8 @@ class PFFLApp {
       <tr>
         <td><span class="pos-pill ${p.assignedSlot || p.pos}">${p.assignedSlot || p.pos}</span></td>
         <td>
-          <div class="player-cell">
+          <div class="player-cell" style="display: flex; align-items: center; justify-content: flex-start;">
+            <img src="${this.getHeadshotURL(p.name)}" onerror="this.onerror=null; this.src='https://sleepercdn.com/images/v2/icons/player_default.webp'" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); margin-right: 10px;">
             <div class="player-info-meta">
               <span class="player-name">${p.name}</span>
               <span class="player-subtext">${p.team} - Bye Wk 9</span>
