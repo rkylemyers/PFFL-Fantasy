@@ -526,25 +526,29 @@ class PFFLApp {
                           for (let i = 0; i < keys.length; i++) {
                               const key = keys[i];
                               const val = parseFloat(stats[i]) || 0;
-                              if (key === 'passingYards') playerStats.passYds += val;
-                              if (key === 'passingTouchdowns') playerStats.passTD += val;
-                              if (key === 'interceptions') {
-                                  if (statCat.name === 'interceptions') playerStats.defInt += val;
-                                  else playerStats.passInt += val;
-                              }
-                              if (key === 'rushingYards') playerStats.rushYds += val;
-                              if (key === 'rushingTouchdowns') playerStats.rushTD += val;
-                              if (key === 'receptions') playerStats.rec += val;
-                              if (key === 'receivingYards') playerStats.recYds += val;
-                              if (key === 'receivingTouchdowns') playerStats.recTD += val;
-                              if (key === 'fumblesLost') playerStats.fumblesLost += val;
+                              
                               if (key === 'sacks') playerStats.sacks += val;
                               if (key === 'fumblesRecovered') playerStats.fumblesRec += val;
-                              if (key === 'defensiveTouchdowns' || key === 'interceptionTouchdowns' || key === 'fumbleReturnTouchdowns') playerStats.defTD += val;
-                              if (key === 'fieldGoalsMade') playerStats.fgMade += val;
-                              if (key === 'twoPointPasses') playerStats.twoPtPass += val;
-                              if (key === 'twoPointRushes') playerStats.twoPtRush += val;
-                              if (key === 'twoPointReceptions') playerStats.twoPtRec += val;
+                              if (key === 'defensiveTouchdowns' || key === 'interceptionTouchdowns' || key === 'fumbleReturnTouchdowns' || key === 'puntReturnTouchdowns' || key === 'kickReturnTouchdowns') playerStats.defTD += val;
+                              if (key === 'interceptions') {
+                                  if (statCat.name === 'interceptions') playerStats.defInt += val;
+                                  else if (!isDef) playerStats.passInt += val;
+                              }
+                              
+                              if (!isDef) {
+                                  if (key === 'passingYards') playerStats.passYds += val;
+                                  if (key === 'passingTouchdowns') playerStats.passTD += val;
+                                  if (key === 'rushingYards') playerStats.rushYds += val;
+                                  if (key === 'rushingTouchdowns') playerStats.rushTD += val;
+                                  if (key === 'receptions') playerStats.rec += val;
+                                  if (key === 'receivingYards') playerStats.recYds += val;
+                                  if (key === 'receivingTouchdowns') playerStats.recTD += val;
+                                  if (key === 'fumblesLost') playerStats.fumblesLost += val;
+                                  if (key === 'fieldGoalsMade') playerStats.fgMade += val;
+                                  if (key === 'twoPointPasses') playerStats.twoPtPass += val;
+                                  if (key === 'twoPointRushes') playerStats.twoPtRush += val;
+                                  if (key === 'twoPointReceptions') playerStats.twoPtRec += val;
+                              }
                           }
                       }
                   }
