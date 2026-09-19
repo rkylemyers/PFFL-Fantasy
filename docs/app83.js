@@ -4,6 +4,14 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 class PFFLApp {
+  getHeadshotURL(cleanName) {
+      if (!cleanName || !this.headshotsMap) return 'https://a.espncdn.com/i/headshots/nfl/players/full/fallback.png';
+      const searchName = cleanName.replace(/[^a-zA-Z]/g, '').toLowerCase();
+      const espnId = this.headshotsMap[searchName];
+      if (espnId) return `https://a.espncdn.com/i/headshots/nfl/players/full/${espnId}.png`;
+      return 'https://a.espncdn.com/i/headshots/nfl/players/full/fallback.png';
+  }
+
   constructor() {
     this.activeFranchiseId = localStorage.getItem("pffl_active_franchise") || "0001";
     this.leagueData = null;
@@ -859,7 +867,7 @@ class PFFLApp {
         .catch(() => fetch('data/liveScoring.json?t=' + Date.now()).then(r => r.json()));
 
       const bust = '?t=' + Date.now();
-      const [leagueRes, rostersRes, playersRes, txRes, projRes, liveRes, syncRes, schedRes] = await Promise.all([
+      const [leagueRes, rostersRes, playersRes, txRes, projRes, liveRes, syncRes, schedRes, headshotsRes] = await Promise.all([
         fetch('data/league.json' + bust).then(r => r.json()).catch(() => ({})),
         fetch('data/rosters.json' + bust).then(r => r.json()).catch(() => ({})),
         fetch('data/players.json' + bust).then(r => r.json()).catch(() => ({})),
@@ -867,9 +875,11 @@ class PFFLApp {
         fetch('data/projectedScores.json' + bust).then(r => r.json()).catch(() => ({})),
         liveScoringPromise,
         fetch('data/sync_status.json' + bust).then(r => r.json()).catch(() => ({})),
-        fetch('data/schedule.json' + bust).then(r => r.json()).catch(() => ({}))
+        fetch('data/schedule.json' + bust).then(r => r.json()).catch(() => ({})),
+        fetch('data/headshots.json' + bust).then(r => r.json()).catch(() => ({}))
       ]);
       this.scheduleData = schedRes.schedule || {};
+      this.headshotsMap = headshotsRes || {};
 
       this.leagueData = leagueRes.league || {};
       this.rostersData = rostersRes.rosters || {};
