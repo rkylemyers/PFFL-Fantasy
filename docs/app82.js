@@ -604,7 +604,8 @@ class PFFLApp {
     const modal = document.getElementById('player-modal');
     if (!modal) return;
     
-    document.getElementById('modal-player-name').textContent = name;
+    const hsUrl = this.getHeadshotURL(name);
+    document.getElementById('modal-player-name').innerHTML = `<div style="display: flex; align-items: center; gap: 12px;"><img src="${hsUrl}" onerror="this.style.display='none'" style="width: 40px; height: 40px; object-fit: cover; border-radius: 50%; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.5);"><span>${name}</span></div>`;
     
     let gameStatus = this.getRealOpponentText(team);
     
@@ -619,12 +620,6 @@ class PFFLApp {
     let breakdownHtml = `
         <div style="font-size: 0.95rem; color: #94a3b8; margin-bottom: 15px; font-weight: 500;">
             ${pos} &nbsp;•&nbsp; ${team} &nbsp;•&nbsp; <span style="color: ${isLive === 'true' ? 'var(--accent-yellow)' : '#e2e8f0'};">${gameStatus}</span>
-        </div>
-        <div style="margin-bottom: 20px;">
-            <div style="background: rgba(255,255,255,0.03); padding: 16px; border-radius: 8px; text-align: center; border: 1px solid rgba(255,255,255,0.08);">
-                <div style="font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; font-weight: 600;">Total Points</div>
-                <div style="font-family: 'SF Mono', 'Courier New', monospace; font-size: 2.2rem; font-weight: 800; color: white;">${score}</div>
-            </div>
         </div>
     `;
     
@@ -1813,10 +1808,12 @@ class PFFLApp {
         }
     }
 
+    const hsUrl = this.getHeadshotURL(p.name);
     return `
       <div class="play-item" data-id="${p.id}" style="cursor: pointer; position: relative; ${isLive ? 'border-left: 2px solid var(--accent-yellow);' : ''}" onclick="window.PFFL.showPlayerModal('${p.id}', '${p.name}', '${p.team}', '${p.pos}', '${p.scoreStr}', '${(p.scoreNum + 10.5).toFixed(1)}', '${isLive}')">
         <div class="play-item-left">
           <span class="pos-pill ${p.displaySlot}">${p.displaySlot}</span>
+          <img src="${hsUrl}" onerror="this.src='https://a.espncdn.com/i/headshots/nfl/players/full/fallback.png'" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); margin-left: 8px; margin-right: 4px;">
           <div class="play-details">
             <span class="player-name-line" style="${isLive ? 'color: var(--text-main);' : ''}">
               ${p.name} <span class="player-subtext" style="${isLive ? 'color: var(--accent-cyan);' : ''}">(${p.team})</span>
@@ -1879,9 +1876,12 @@ class PFFLApp {
       return `<div style="color: var(--text-muted); font-size: 0.8rem; padding: 0.75rem;">No live scoring plays recorded yet for this team.</div>`;
     }
 
-    return allPlays.map(p => `
+    return allPlays.map(p => {
+      const hsUrl = this.getHeadshotURL(p.playerName);
+      return `
       <div class="play-item ${p.isBigPlay ? 'big-play-item' : ''}" data-id="${p.playerId}">
-        <div class="play-item-left">
+        <div class="play-item-left" style="align-items: center; gap: 10px;">
+          <img src="${hsUrl}" onerror="this.src='https://a.espncdn.com/i/headshots/nfl/players/full/fallback.png'" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
           <div class="play-details">
             <span class="player-name-line" style="color: var(--accent-cyan)">
               ${p.playerName} <span class="pts-delta-badge ${p.pts && p.pts.toString().startsWith('+') ? 'pos' : 'neutral'}">${p.pts}</span> <span class="play-time-stamp">(${p.timeStamp})</span> ${p.isTD ? '<span class="big-play-alert-tag" style="background: var(--accent-red); color: white;">🚨 BIG PLAY ALERT</span>' : (p.isBigPlay ? '<span class="big-play-alert-tag">🚨 BIG PLAY ALERT</span>' : '')}
@@ -1892,7 +1892,8 @@ class PFFLApp {
           </div>
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
   }
 
   // -------------------------------------------------------------
