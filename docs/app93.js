@@ -761,7 +761,7 @@ class PFFLApp {
             btnTestAuth.innerHTML = '<span>⏳ Connecting to MFL...</span>';
             btnTestAuth.disabled = true;
             try {
-                const resp = await fetch('/api/mfl-proxy', {
+                const resp = await fetch('https://pffl-fantasy-jdshblrwl-rkylemyers-7952.vercel.app/api/mfl-proxy', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'test_auth', username: user, password: pw })
@@ -2510,7 +2510,7 @@ class PFFLApp {
 
         try {
             const liveWeek = this.currentLiveWeek || 1;
-            const resp = await fetch('/api/mfl-proxy', {
+            const resp = await fetch('https://pffl-fantasy-jdshblrwl-rkylemyers-7952.vercel.app/api/mfl-proxy', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
