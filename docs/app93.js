@@ -750,7 +750,7 @@ class PFFLApp {
     if (mflPass) mflPass.value = localStorage.getItem("pffl_mfl_password") || "";
 
     if (btnTestAuth) {
-        btnTestAuth.addEventListener("click", () => {
+        btnTestAuth.addEventListener("click", async () => {
             const user = mflUser ? mflUser.value.trim() : '';
             const pw = mflPass ? mflPass.value.trim() : '';
             if (!user || !pw) {
@@ -758,28 +758,35 @@ class PFFLApp {
                 return;
             }
             const originalText = btnTestAuth.innerHTML;
-            btnTestAuth.innerHTML = '<span>⏳ Connecting...</span>';
+            btnTestAuth.innerHTML = '<span>⏳ Connecting to MFL...</span>';
             btnTestAuth.disabled = true;
-            setTimeout(() => {
+            try {
+                const resp = await fetch('/api/mfl-proxy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'test_auth', username: user, password: pw })
+                });
+                const data = await resp.json();
                 btnTestAuth.disabled = false;
-                if (user.length >= 3 && pw.length >= 3) {
+                if (data.success) {
                     btnTestAuth.innerHTML = '<span>✅ Authenticated!</span>';
                     btnTestAuth.style.backgroundColor = 'var(--accent-green)';
-                    this.showToast("Secure connection established with MFL.");
-                    setTimeout(() => { 
-                        btnTestAuth.innerHTML = originalText;
-                        btnTestAuth.style.backgroundColor = '';
-                    }, 3000);
+                    this.showToast("✅ MFL login confirmed! Credentials saved.");
                 } else {
                     btnTestAuth.innerHTML = '<span>❌ Auth Failed</span>';
-                    btnTestAuth.style.backgroundColor = 'var(--accent-red)';
-                    this.showToast("Authentication Failed. Invalid credentials.");
-                    setTimeout(() => { 
-                        btnTestAuth.innerHTML = originalText;
-                        btnTestAuth.style.backgroundColor = '';
-                    }, 3000);
+                    btnTestAuth.style.backgroundColor = 'var(--accent-red, #ef4444)';
+                    this.showToast("❌ " + (data.error || "Authentication Failed. Check your credentials."));
                 }
-            }, 1500);
+            } catch(e) {
+                btnTestAuth.disabled = false;
+                btnTestAuth.innerHTML = '<span>❌ Network Error</span>';
+                btnTestAuth.style.backgroundColor = 'var(--accent-red, #ef4444)';
+                this.showToast("❌ Could not reach proxy server. Is it deployed on Vercel?");
+            }
+            setTimeout(() => { 
+                btnTestAuth.innerHTML = originalText;
+                btnTestAuth.style.backgroundColor = '';
+            }, 3500);
         });
     }
 
@@ -2469,28 +2476,73 @@ class PFFLApp {
 
     const btnSubmit = document.getElementById("btn-submit-lineup");
     if (btnSubmit) {
-      btnSubmit.addEventListener("click", () => {
+      btnSubmit.addEventListener("click", async () => {
         const user = localStorage.getItem('pffl_mfl_username');
         const pw = localStorage.getItem('pffl_mfl_password');
         
         if (!user || !pw) {
-            this.showToast("❌ Action Blocked: You must configure your MFL Username and Password in the Alerts & Settings tab before submitting lineups.");
+            this.showToast("❌ Action Blocked: Configure your MFL Username & Password in Settings first.");
             return;
         }
-        
-        // Add artificial latency to simulate a POST network request
+
+        // Collect starters from roster UI dropdowns
+        const starterData = [];
+        const benchData = [];
+        document.querySelectorAll('.action-slot-select').forEach(sel => {
+            const playerId = sel.dataset.id;
+            const selectedSlot = sel.value;
+            if (!playerId || playerId.startsWith('empty-')) return;
+            if (selectedSlot === 'Bench' || selectedSlot === 'IR') {
+                benchData.push({ id: playerId });
+            } else {
+                starterData.push({ id: playerId, slot: selectedSlot });
+            }
+        });
+
+        if (starterData.length === 0) {
+            this.showToast("❌ No starters found. Make sure your roster is loaded.");
+            return;
+        }
+
         const originalText = btnSubmit.innerHTML;
-        btnSubmit.innerHTML = '<span>📡 Transmitting to MFL...</span>';
+        btnSubmit.innerHTML = '<span>📡 Authenticating with MFL...</span>';
         btnSubmit.disabled = true;
-        
+
+        try {
+            const liveWeek = this.currentLiveWeek || 1;
+            const resp = await fetch('/api/mfl-proxy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'submit_lineup',
+                    username: user,
+                    password: pw,
+                    leagueId: '44108',
+                    franchiseId: this.activeFranchiseId,
+                    week: liveWeek,
+                    starters: starterData,
+                    bench: benchData
+                })
+            });
+            const data = await resp.json();
+
+            if (data.success) {
+                btnSubmit.innerHTML = '<span>✅ Lineup Locked!</span>';
+                this.showToast("🚀 Lineup officially submitted to MFL!");
+            } else {
+                btnSubmit.innerHTML = '<span>❌ Submit Failed</span>';
+                this.showToast("❌ MFL Error: " + (data.error || data.message || "Unknown error."));
+                console.error("MFL submit raw:", data.raw);
+            }
+        } catch(e) {
+            btnSubmit.innerHTML = '<span>❌ Network Error</span>';
+            this.showToast("❌ Could not reach proxy. Is Vercel deployed?");
+        }
+
         setTimeout(() => {
-            btnSubmit.innerHTML = '<span>✅ Lineup Locked!</span>';
-            this.showToast("🚀 Roster authenticated and securely submitted to MFL successfully!");
-            setTimeout(() => {
-                btnSubmit.innerHTML = originalText;
-                btnSubmit.disabled = false;
-            }, 2500);
-        }, 1200);
+            btnSubmit.innerHTML = originalText;
+            btnSubmit.disabled = false;
+        }, 3000);
       });
     }
 
