@@ -613,7 +613,7 @@ class PFFLApp {
     if (!modal) return;
     
     const hsUrl = this.getHeadshotURL(name);
-    document.getElementById('modal-player-name').innerHTML = `<div style="display: flex; align-items: center; gap: 16px; overflow: hidden;"><img src="${hsUrl}" onerror="this.onerror=null; this.src='https://sleepercdn.com/images/v2/icons/player_default.webp'" style="width: 120px; height: 120px; min-width: 120px; object-fit: cover; border-radius: 50%; border: 3px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.5); box-shadow: 0 6px 16px rgba(0,0,0,0.5);"><span style="font-size: clamp(1rem, 5.5vw, 1.55rem); font-weight: 800; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.5px;">${name}</span></div>`;
+    document.getElementById('modal-player-name').innerHTML = `<div style="display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 10px;"><img src="${hsUrl}" onerror="this.onerror=null; this.src='https://sleepercdn.com/images/v2/icons/player_default.webp'" style="width: 120px; height: 120px; min-width: 120px; object-fit: cover; border-radius: 50%; border: 3px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.5); box-shadow: 0 6px 16px rgba(0,0,0,0.5);"><span style="font-size: 1.6rem; font-weight: 800; line-height: 1.1; white-space: nowrap; letter-spacing: -0.5px; text-align: center;">${name}</span></div>`;
     
     let gameStatus = this.getRealOpponentText(team);
     
@@ -626,7 +626,7 @@ class PFFLApp {
     }
 
     let breakdownHtml = `
-        <div style="font-size: 0.95rem; color: #94a3b8; margin-bottom: 15px; font-weight: 500;">
+        <div style="font-size: 0.95rem; color: #94a3b8; margin-bottom: 20px; font-weight: 500; text-align: center; margin-top: 5px;">
             ${pos} &nbsp;•&nbsp; ${team} &nbsp;•&nbsp; <span style="color: ${isLive === 'true' ? 'var(--accent-yellow)' : '#e2e8f0'};">${gameStatus}</span>
         </div>
     `;
