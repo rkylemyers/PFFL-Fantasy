@@ -679,8 +679,8 @@ body.dark-theme {
 }
 
 .pos-pill.QB { background-color: var(--badge-qb); }
-.pos-pill.RB { background-color: var(--badge-rb); }
-.pos-pill.WR { background-color: var(--badge-wr); }
+.pos-pill.RB, .pos-pill.RB1, .pos-pill.RB2 { background-color: var(--badge-rb); }
+.pos-pill.WR, .pos-pill.WR1, .pos-pill.WR2 { background-color: var(--badge-wr); }
 .pos-pill.FLEX { background-color: var(--badge-flex); }
 .pos-pill.TE { background-color: var(--badge-te); }
 .pos-pill.PK, .pos-pill.K { background-color: var(--badge-pk); }
