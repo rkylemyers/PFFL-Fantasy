@@ -613,7 +613,7 @@ class PFFLApp {
     if (!modal) return;
     
     const hsUrl = this.getHeadshotURL(name);
-    document.getElementById('modal-player-name').innerHTML = `<div style="display: flex; align-items: center; gap: 16px;"><img src="${hsUrl}" onerror="this.onerror=null; this.src='https://sleepercdn.com/images/v2/icons/player_default.webp'" style="width: 72px; height: 72px; object-fit: cover; border-radius: 50%; border: 2px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.5); box-shadow: 0 4px 12px rgba(0,0,0,0.4);"><span>${name}</span></div>`;
+    document.getElementById('modal-player-name').innerHTML = `<div style="display: flex; align-items: center; gap: 20px;"><img src="${hsUrl}" onerror="this.onerror=null; this.src='https://sleepercdn.com/images/v2/icons/player_default.webp'" style="width: 120px; height: 120px; object-fit: cover; border-radius: 50%; border: 3px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.5); box-shadow: 0 6px 16px rgba(0,0,0,0.5);"><span style="font-size: 1.8rem; font-weight: 800; line-height: 1.1;">${name}</span></div>`;
     
     let gameStatus = this.getRealOpponentText(team);
     
