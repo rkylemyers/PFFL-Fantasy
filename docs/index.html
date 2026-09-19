@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260913_77">
+  <link rel="stylesheet" href="styles.css?v=20260913_78">
 </head>
 <body class="dark-theme">
   <!-- Top Global Navigation Bar -->
@@ -391,10 +391,19 @@
               <select id="active-franchise-select" class="input-styled" style="width: 100%; padding: 10px; background: #000; color: #fff; border: 1px solid var(--border-color); border-radius: 4px; margin-bottom: 10px;">
                 <!-- Dynamically populated via JS -->
               </select>
-              <label for="mfl-password" style="display: block; margin-bottom: 5px; color: var(--text-muted); font-size: 0.85rem;">MFL Password (Optional - Required for Roster Moves):</label>
-              <input type="password" id="mfl-password" class="input-styled" placeholder="Enter password to take control..." style="width: 100%; padding: 10px; background: #000; color: #fff; border: 1px solid var(--border-color); border-radius: 4px;">
+              <label for="mfl-username" style="display: block; margin-bottom: 5px; color: var(--text-muted); font-size: 0.85rem;">MFL Username (Required for Roster Moves):</label>
+              <input type="text" id="mfl-username" class="input-styled" placeholder="Enter MFL Username..." style="width: 100%; padding: 10px; background: #000; color: #fff; border: 1px solid var(--border-color); border-radius: 4px; margin-bottom: 10px;">
+              
+              <label for="mfl-password" style="display: block; margin-bottom: 5px; color: var(--text-muted); font-size: 0.85rem;">MFL Password (Required for Roster Moves):</label>
+              <input type="password" id="mfl-password" class="input-styled" placeholder="Enter password to take control..." style="width: 100%; padding: 10px; background: #000; color: #fff; border: 1px solid var(--border-color); border-radius: 4px; margin-bottom: 15px;">
+              
+              <div style="display: flex; gap: 10px;">
+                <button id="btn-test-auth" class="btn-secondary" style="flex: 1; display: flex; justify-content: center; align-items: center; gap: 5px;">
+                   <span>🔐 Test Login</span>
+                </button>
+                <button id="btn-save-franchise" class="btn-primary" style="flex: 2;">💾 Save Franchise Setup</button>
+              </div>
             </div>
-            <button id="btn-save-franchise" class="btn-primary" style="width: 100%;">💾 Set Active Franchise & Reload</button>
           </div>
         </div>
 
@@ -502,8 +511,8 @@
 
   <div id="toast-container" class="toast-container"></div>
 
-  <!-- Scripts with cache buster v=20260913_77 -->
-  <script src="field.js?v=20260913_77"></script>
+  <!-- Scripts with cache buster v=20260913_78 -->
+  <script src="field.js?v=20260913_78"></script>
   <script src="app93.js"></script>
 </body>
 </html>
