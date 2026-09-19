@@ -458,20 +458,27 @@ class PFFLApp {
       return { html, plays: mockPlays };
   }
 
-  async fetchTruePlayerStats(week, teamAbbr, cleanName) {
+  async fetchTruePlayerStats(week, teamAbbr, cleanName, pos = '') {
       try {
+          const teamMap = { 'NO':'NO', 'GB':'GB', 'LV':'LV', 'SF':'SF', 'TB':'TB', 'KC':'KC', 'NE':'NE', 'WSH':'WSH', 'JAX':'JAX', 'NOS':'NO', 'GBP':'GB', 'LVR':'LV', 'SFO':'SF', 'TBB':'TB', 'KCC':'KC', 'NEP':'NE', 'WAS':'WSH', 'JAC':'JAX' };
+          let mappedTeam = teamAbbr ? (teamMap[teamAbbr.toUpperCase()] || teamAbbr.toUpperCase()) : "";
+          
           const year = 2026;
           const sbUrl = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week=${week}&dates=${year}`;
           const sbRes = await fetch(sbUrl);
           const sbData = await sbRes.json();
           
           let eventId = null;
+          let oppScore = 0;
+          
           for (const event of sbData.events) {
               if (event.competitions && event.competitions[0].competitors) {
-                  for (const comp of event.competitions[0].competitors) {
-                      if (comp.team.abbreviation.toUpperCase() === teamAbbr.toUpperCase()) {
+                  const comps = event.competitions[0].competitors;
+                  for (let i = 0; i < comps.length; i++) {
+                      if (comps[i].team.abbreviation.toUpperCase() === mappedTeam) {
                           eventId = event.id;
-                          break;
+                          const opp = comps.find(c => c.team.abbreviation.toUpperCase() !== mappedTeam);
+                          if (opp) oppScore = parseInt(opp.score) || 0;
                       }
                   }
               }
@@ -479,7 +486,7 @@ class PFFLApp {
           }
           
           if (!eventId) return null;
-          
+
           const sumUrl = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=${eventId}`;
           const sumRes = await fetch(sumUrl);
           const sumData = await sumRes.json();
@@ -488,48 +495,56 @@ class PFFLApp {
               passYds: 0, passTD: 0, passInt: 0,
               rushYds: 0, rushTD: 0,
               rec: 0, recYds: 0, recTD: 0,
-              fumblesLost: 0,
-              sacks: 0, defInt: 0, defTD: 0,
-              fgMade: 0,
-              twoPtPass: 0, twoPtRush: 0, twoPtRec: 0
+              fumblesLost: 0, sacks: 0, defTD: 0, defInt: 0, fumblesRec: 0,
+              fgMade: 0, twoPtPass: 0, twoPtRush: 0, twoPtRec: 0, pointsAllowed: 0, isDst: false
           };
           
+          const isDef = pos.toLowerCase() === 'def' || pos.toLowerCase() === 'dst';
           const normalizeName = (name) => name.replace(/[^a-zA-Z]/g, '').toLowerCase();
           const searchName = normalizeName(cleanName);
           let found = false;
           
+          if (isDef) {
+              playerStats.isDst = true;
+              playerStats.pointsAllowed = oppScore;
+              found = true;
+          }
+          
           for (const teamBox of sumData.boxscore.players) {
+              if (isDef && teamBox.team.abbreviation.toUpperCase() !== mappedTeam) continue;
               if (!teamBox.statistics) continue;
+              
               for (const statCat of teamBox.statistics) {
                   if (!statCat.athletes) continue;
                   for (const athlete of statCat.athletes) {
                       const athName = normalizeName(athlete.athlete.displayName);
-                      if (athName.includes(searchName) || searchName.includes(athName)) {
-                          found = true;
+                      if (isDef || athName.includes(searchName) || searchName.includes(athName)) {
+                          if (!isDef) found = true;
                           const keys = statCat.keys;
                           const stats = athlete.stats;
                           
                           for (let i = 0; i < keys.length; i++) {
                               const key = keys[i];
                               const val = parseFloat(stats[i]) || 0;
-                              if (key === 'passingYards') playerStats.passYds = val;
-                              if (key === 'passingTouchdowns') playerStats.passTD = val;
+                              if (key === 'passingYards') playerStats.passYds += val;
+                              if (key === 'passingTouchdowns') playerStats.passTD += val;
                               if (key === 'interceptions') {
-                                  if (statCat.name === 'defensive') playerStats.defInt = val;
-                                  else playerStats.passInt = val;
+                                  if (statCat.name === 'interceptions') playerStats.defInt += val;
+                                  else playerStats.passInt += val;
                               }
-                              if (key === 'rushingYards') playerStats.rushYds = val;
-                              if (key === 'rushingTouchdowns') playerStats.rushTD = val;
-                              if (key === 'receptions') playerStats.rec = val;
-                              if (key === 'receivingYards') playerStats.recYds = val;
-                              if (key === 'receivingTouchdowns') playerStats.recTD = val;
-                              if (key === 'fumblesLost') playerStats.fumblesLost = val;
-                              if (key === 'sacks') playerStats.sacks = val;
-                              if (key === 'defensiveTouchdowns') playerStats.defTD = val;
-                              if (key === 'fieldGoalsMade') playerStats.fgMade = val;
-                              if (key === 'twoPointPasses') playerStats.twoPtPass = val;
-                              if (key === 'twoPointRushes') playerStats.twoPtRush = val;
-                              if (key === 'twoPointReceptions') playerStats.twoPtRec = val;
+                              if (key === 'rushingYards') playerStats.rushYds += val;
+                              if (key === 'rushingTouchdowns') playerStats.rushTD += val;
+                              if (key === 'receptions') playerStats.rec += val;
+                              if (key === 'receivingYards') playerStats.recYds += val;
+                              if (key === 'receivingTouchdowns') playerStats.recTD += val;
+                              if (key === 'fumblesLost') playerStats.fumblesLost += val;
+                              if (key === 'sacks') playerStats.sacks += val;
+                              if (key === 'fumblesRecovered') playerStats.fumblesRec += val;
+                              if (key === 'defensiveTouchdowns' || key === 'interceptionTouchdowns' || key === 'fumbleReturnTouchdowns') playerStats.defTD += val;
+                              if (key === 'fieldGoalsMade') playerStats.fgMade += val;
+                              if (key === 'twoPointPasses') playerStats.twoPtPass += val;
+                              if (key === 'twoPointRushes') playerStats.twoPtRush += val;
+                              if (key === 'twoPointReceptions') playerStats.twoPtRec += val;
                           }
                       }
                   }
@@ -600,14 +615,11 @@ class PFFLApp {
           if (totalScore > 0) addRow('Kicking Points', `Total Field Goals & PATs`, totalScore);
       }
 
-      let diff = totalScore - calculatedPts;
-      if (Math.abs(diff) > 0.05 && pos !== 'K') {
-          if (diff > 0) addRow('Misc Bonuses', `PFFL League Custom Rules`, diff);
-          else addRow('Misc Penalties', `PFFL League Custom Rules`, diff);
+      if (breakdowns.length === 0) {
+          return `<p style="color: var(--text-muted); font-size: 0.9rem; font-style: italic;">No standard scoring stats recorded.</p>`;
       }
-
-      let html = `<div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 16px; margin-top: 15px;">`;
-      html += breakdowns.join('');
+      
+      let html = `<div style="display: flex; flex-direction: column;">` + breakdowns.join('') + `</div>`;
       
       let totalColor = totalScore >= 0 ? '#4ade80' : '#f87171';
       html += `
@@ -616,10 +628,10 @@ class PFFLApp {
               <span style="font-family: 'SF Mono', 'Courier New', monospace; font-size: 1.25rem; font-weight: 700; color: ${totalColor};">${totalScore.toFixed(2)}</span>
           </div>
       `;
-      html += `</div>`;
       
       return html;
   }
+
   showPlayerModal(id, name, team, pos, score, projScore, isLive) {
     const modal = document.getElementById('player-modal');
     if (!modal) return;
