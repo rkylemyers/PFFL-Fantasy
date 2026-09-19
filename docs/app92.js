@@ -496,8 +496,18 @@ class PFFLApp {
               rushYds: 0, rushTD: 0,
               rec: 0, recYds: 0, recTD: 0,
               fumblesLost: 0, sacks: 0, defTD: 0, defInt: 0, fumblesRec: 0,
-              fgMade: 0, twoPtPass: 0, twoPtRush: 0, twoPtRec: 0, pointsAllowed: 0, isDst: false
+              fgMade: 0, twoPtPass: 0, twoPtRush: 0, twoPtRec: 0, pointsAllowed: 0, isDst: false,
+              puntRetYds: 0, kickRetYds: 0, intRetYds: 0, safeties: 0
           };
+          
+          if (sumData.scoringPlays) {
+              for (const play of sumData.scoringPlays) {
+                  // Only award safeties to DSTs for now to keep it simple, or award to the team overall
+                  if (play.type && play.type.text === 'Safety' && play.team && play.team.abbreviation.toUpperCase() === mappedTeam) {
+                      playerStats.safeties += 1;
+                  }
+              }
+          }
           
           const isDef = pos.toLowerCase() === 'def' || pos.toLowerCase() === 'dst';
           const normalizeName = (name) => name.replace(/[^a-zA-Z]/g, '').toLowerCase();
@@ -534,6 +544,9 @@ class PFFLApp {
                                   if (statCat.name === 'interceptions') playerStats.defInt += val;
                                   else if (!isDef) playerStats.passInt += val;
                               }
+                              if (key === 'puntReturnYards') playerStats.puntRetYds += val;
+                              if (key === 'kickReturnYards') playerStats.kickRetYds += val;
+                              if (key === 'interceptionYards') playerStats.intRetYds += val;
                               
                               if (!isDef) {
                                   if (key === 'passingYards') playerStats.passYds += val;
@@ -611,9 +624,13 @@ class PFFLApp {
           if (stats.fumblesRec > 0) addRow('Fumbles Recovered', `2 pts per Rec • ${stats.fumblesRec} Rec`, stats.fumblesRec * 2);
       }
       
+      if (stats.safeties > 0 && stats.isDst) addRow('Safeties', `2 pts per Safety • ${stats.safeties} Safeties`, stats.safeties * 2);
       if (stats.defTD > 0) addRow('Defensive Touchdowns', `6 pts per TD • ${stats.defTD} TDs`, stats.defTD * 6);
       if (stats.defInt > 0) addRow('Defensive Interceptions', `3 pts per INT • ${stats.defInt} INTs`, stats.defInt * 3);
       if (stats.sacks > 0) addRow('Defensive Sacks', `2 pts per Sack • ${stats.sacks} Sacks`, stats.sacks * 2);
+      if (stats.puntRetYds !== 0) addRow('Punt Return Yards', `1 pt per 10 Yds • ${stats.puntRetYds} Yds`, stats.puntRetYds * 0.1);
+      if (stats.kickRetYds !== 0) addRow('Kick Return Yards', `1 pt per 10 Yds • ${stats.kickRetYds} Yds`, stats.kickRetYds * 0.1);
+      if (stats.intRetYds !== 0) addRow('INT Return Yards', `1 pt per 10 Yds • ${stats.intRetYds} Yds`, stats.intRetYds * 0.1);
       
       if (pos === 'K') {
           if (totalScore > 0) addRow('Kicking Points', `Total Field Goals & PATs`, totalScore);
