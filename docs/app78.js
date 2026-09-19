@@ -450,6 +450,145 @@ class PFFLApp {
       return { html, plays: mockPlays };
   }
 
+  async fetchTruePlayerStats(week, teamAbbr, cleanName) {
+      try {
+          const year = 2026;
+          const sbUrl = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week=${week}&dates=${year}`;
+          const sbRes = await fetch(sbUrl);
+          const sbData = await sbRes.json();
+          
+          let eventId = null;
+          for (const event of sbData.events) {
+              if (event.competitions && event.competitions[0].competitors) {
+                  for (const comp of event.competitions[0].competitors) {
+                      if (comp.team.abbreviation.toUpperCase() === teamAbbr.toUpperCase()) {
+                          eventId = event.id;
+                          break;
+                      }
+                  }
+              }
+              if (eventId) break;
+          }
+          
+          if (!eventId) return null;
+          
+          const sumUrl = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=${eventId}`;
+          const sumRes = await fetch(sumUrl);
+          const sumData = await sumRes.json();
+          
+          let playerStats = {
+              passYds: 0, passTD: 0, passInt: 0,
+              rushYds: 0, rushTD: 0,
+              rec: 0, recYds: 0, recTD: 0,
+              fumblesLost: 0,
+              sacks: 0, defInt: 0, defTD: 0,
+              fgMade: 0
+          };
+          
+          const normalizeName = (name) => name.replace(/[^a-zA-Z]/g, '').toLowerCase();
+          const searchName = normalizeName(cleanName);
+          let found = false;
+          
+          for (const teamBox of sumData.boxscore.players) {
+              if (!teamBox.statistics) continue;
+              for (const statCat of teamBox.statistics) {
+                  if (!statCat.athletes) continue;
+                  for (const athlete of statCat.athletes) {
+                      const athName = normalizeName(athlete.athlete.displayName);
+                      if (athName.includes(searchName) || searchName.includes(athName)) {
+                          found = true;
+                          const keys = statCat.keys;
+                          const stats = athlete.stats;
+                          
+                          for (let i = 0; i < keys.length; i++) {
+                              const key = keys[i];
+                              const val = parseFloat(stats[i]) || 0;
+                              if (key === 'passingYards') playerStats.passYds = val;
+                              if (key === 'passingTouchdowns') playerStats.passTD = val;
+                              if (key === 'interceptions') {
+                                  if (statCat.name === 'defensive') playerStats.defInt = val;
+                                  else playerStats.passInt = val;
+                              }
+                              if (key === 'rushingYards') playerStats.rushYds = val;
+                              if (key === 'rushingTouchdowns') playerStats.rushTD = val;
+                              if (key === 'receptions') playerStats.rec = val;
+                              if (key === 'receivingYards') playerStats.recYds = val;
+                              if (key === 'receivingTouchdowns') playerStats.recTD = val;
+                              if (key === 'fumblesLost') playerStats.fumblesLost = val;
+                              if (key === 'sacks') playerStats.sacks = val;
+                              if (key === 'defensiveTouchdowns') playerStats.defTD = val;
+                              if (key === 'fieldGoalsMade') playerStats.fgMade = val;
+                          }
+                      }
+                  }
+              }
+          }
+          if (found) return playerStats;
+          return null;
+      } catch (e) {
+          console.error(e);
+          return null;
+      }
+  }
+
+  buildTrueStatlineHTML(stats, totalScore, pos) {
+      let breakdowns = [];
+      let calculatedPts = 0;
+      
+      const addB = (pts, desc) => {
+          calculatedPts += pts;
+          breakdowns.push(`<div style="margin-bottom: 4px; display: flex; justify-content: space-between;">
+              <span style="color: var(--accent-green);">+${pts.toFixed(1)}</span>
+              <span style="color: var(--text-muted);">${desc}</span>
+          </div>`);
+      };
+      const subB = (pts, desc) => {
+          calculatedPts += pts;
+          breakdowns.push(`<div style="margin-bottom: 4px; display: flex; justify-content: space-between;">
+              <span style="color: var(--accent-red);">${pts.toFixed(1)}</span>
+              <span style="color: var(--text-muted);">${desc}</span>
+          </div>`);
+      };
+
+      if (stats.passYds > 0) addB(stats.passYds * 0.05, `1 pt per 20 Pass Yds applied to ${stats.passYds} Pass Yds`);
+      if (stats.passTD > 0) addB(stats.passTD * 6, `6 pts per Pass TD applied to ${stats.passTD} Pass TDs`);
+      if (stats.passInt > 0) subB(stats.passInt * -3, `-3 pts per Pass INT applied to ${stats.passInt} INTs`);
+      
+      if (stats.rushYds > 0) addB(stats.rushYds * 0.1, `1 pt per 10 Rush Yds applied to ${stats.rushYds} Rush Yds`);
+      if (stats.rushTD > 0) addB(stats.rushTD * 6, `6 pts per Rush TD applied to ${stats.rushTD} Rush TDs`);
+      
+      if (stats.rec > 0) addB(stats.rec * 1.0, `1 pt per Reception applied to ${stats.rec} Rec`);
+      if (stats.recYds > 0) addB(stats.recYds * 0.1, `1 pt per 10 Rec Yds applied to ${stats.recYds} Rec Yds`);
+      if (stats.recTD > 0) addB(stats.recTD * 6, `6 pts per Rec TD applied to ${stats.recTD} Rec TDs`);
+      
+      if (stats.fumblesLost > 0) subB(stats.fumblesLost * -2, `-2 pts per Fumble Lost applied to ${stats.fumblesLost} Fumbles`);
+      
+      if (pos === 'DST' || pos === 'DEF') {
+          if (stats.defTD > 0) addB(stats.defTD * 6, `6 pts per Def TD applied to ${stats.defTD} Def TDs`);
+          if (stats.defInt > 0) addB(stats.defInt * 3, `3 pts per Def INT applied to ${stats.defInt} INTs`);
+          if (stats.sacks > 0) addB(stats.sacks * 2, `2 pts per Sack applied to ${stats.sacks} Sacks`);
+      }
+      
+      if (pos === 'K') {
+          if (totalScore > 0) addB(totalScore, `Total Field Goal & PAT Points applied`);
+      }
+
+      let diff = totalScore - calculatedPts;
+      if (Math.abs(diff) > 0.05 && pos !== 'K') {
+          if (diff > 0) addB(diff, `Misc Bonuses / 2pt Conversions`);
+          else subB(diff, `Misc Penalties`);
+      }
+
+      let html = `<div style="font-size: 0.85rem; color: var(--text-main); font-family: monospace; background: rgba(0,0,0,0.25); padding: 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);">`;
+      html += breakdowns.join('');
+      html += `<div style="margin-top: 8px; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 8px; display: flex; justify-content: space-between; font-weight: bold; font-size: 1rem;">
+          <span>Total PFFL Points</span>
+          <span style="color: white;">${totalScore.toFixed(2)}</span>
+      </div>`;
+      html += `</div>`;
+      
+      return html;
+  }
   showPlayerModal(id, name, team, pos, score, projScore, isLive) {
     const modal = document.getElementById('player-modal');
     if (!modal) return;
@@ -494,21 +633,31 @@ class PFFLApp {
         }
     }
     
-    // Fallback: Use our exact PFFL rule generator for historical breakdowns
+    // Fallback: Fetch true real-world stats from ESPN and calculate PFFL breakdown
     if (!foundDetailedStats && this.playerHistoryCache && this.playerHistoryCache.has(id)) {
         const cachedP = this.playerHistoryCache.get(id);
         if (cachedP.scoreNum > 0) {
-            const gen = this.generatePFFLStatlineBreakdown(cachedP.scoreNum, cachedP.pos, cachedP.name, gameStatus);
             breakdownHtml += `
-                <div style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
-                    <h4 style="margin: 0 0 10px 0; color: var(--accent-red);">PFFL Scoring Breakdown</h4>
-                    ${gen.html}
+                <div id="true-stats-container" style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
+                    <h4 style="margin: 0 0 10px 0; color: var(--accent-red);">Real Statline Breakdown</h4>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); font-style: italic;">Fetching exact NFL stats from ESPN...</p>
                 </div>
             `;
+            // Fire async fetch
+            this.fetchTruePlayerStats(this.viewingWeek, cachedP.team, cachedP.name).then(stats => {
+                const container = document.getElementById("true-stats-container");
+                if (container) {
+                    if (stats) {
+                        container.innerHTML = `<h4 style="margin: 0 0 10px 0; color: var(--accent-red);">Real Statline Breakdown</h4>` + this.buildTrueStatlineHTML(stats, cachedP.scoreNum, cachedP.pos);
+                    } else {
+                        container.innerHTML = `<h4 style="margin: 0 0 10px 0; color: var(--accent-red);">Real Statline Breakdown</h4><p style="font-size: 0.9rem; color: var(--text-muted); font-style: italic;">Could not locate NFL boxscore for this player.</p>`;
+                    }
+                }
+            });
         } else {
             breakdownHtml += `
                 <div style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
-                    <h4 style="margin: 0 0 5px 0; color: var(--accent-red);">PFFL Scoring Breakdown</h4>
+                    <h4 style="margin: 0 0 5px 0; color: var(--accent-red);">Real Statline Breakdown</h4>
                     <p style="font-size: 0.9rem; color: var(--text-muted); font-style: italic;">No positive scoring stats recorded.</p>
                 </div>
             `;
@@ -828,7 +977,8 @@ class PFFLApp {
 
   async loadRealHistoricalPlays() {
     try {
-      const resp = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard');
+      const url = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week=${this.viewingWeek || 1}&dates=2026`;
+      const resp = await fetch(url);
       const data = await resp.json();
       
       const gameIds = data.events.map(e => e.id);
@@ -1140,6 +1290,7 @@ class PFFLApp {
   // PAGE 1: LIVE SCORING & REVERSE CHRONOLOGICAL STREAM ENGINE
   // -------------------------------------------------------------
   async updateWeekView() {
+      this.historicalPlaysLoaded = false;
       const disp = document.getElementById("display-current-week");
       if (disp) {
           disp.textContent = `Week ${this.viewingWeek}` + (this.viewingWeek === this.currentLiveWeek ? " (Live)" : "");
@@ -1393,13 +1544,7 @@ class PFFLApp {
       let baseYards = 5;
 
       if (scoreNum > 0) {
-          // Generative Fallback for Historical Weeks:
-          // ESPN async loading only works for the current live week.
-          // For past weeks, we generate a statistically accurate play-by-play using our PFFL Breakdown logic.
-          if (this.viewingWeek < this.currentLiveWeek && last5Plays.length === 0) {
-              const gen = this.generatePFFLStatlineBreakdown(scoreNum, pos, cleanName, upcomingGameInfo);
-              last5Plays = gen.plays;
-          }
+          // ESPN async loading will handle populating real historical plays for all weeks!
       } else if (false) { // Skip old mock code
         const numPlays = Math.min(5, Math.max(2, Math.floor(scoreNum / 2) + 1));
         const playPoints = [];
