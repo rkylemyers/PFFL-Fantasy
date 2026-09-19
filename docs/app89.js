@@ -580,6 +580,18 @@ class PFFLApp {
       
       if (stats.fumblesLost > 0) addRow('Fumbles Lost', `-2 pts per Fumble • ${stats.fumblesLost} Fumbles`, stats.fumblesLost * -2);
       
+      if (stats.isDst) {
+          let paPts = 0;
+          let pa = stats.pointsAllowed;
+          if (pa === 0) paPts = 10;
+          else if (pa >= 2 && pa <= 7) paPts = 5;
+          else if (pa >= 8 && pa <= 14) paPts = 2;
+          else if (pa >= 15 && pa <= 35) paPts = 0;
+          else if (pa >= 36) paPts = -3;
+          addRow('Points Allowed', `${pa} PA`, paPts);
+          if (stats.fumblesRec > 0) addRow('Fumbles Recovered', `2 pts per Rec • ${stats.fumblesRec} Rec`, stats.fumblesRec * 2);
+      }
+      
       if (stats.defTD > 0) addRow('Defensive Touchdowns', `6 pts per TD • ${stats.defTD} TDs`, stats.defTD * 6);
       if (stats.defInt > 0) addRow('Defensive Interceptions', `3 pts per INT • ${stats.defInt} INTs`, stats.defInt * 3);
       if (stats.sacks > 0) addRow('Defensive Sacks', `2 pts per Sack • ${stats.sacks} Sacks`, stats.sacks * 2);
@@ -663,7 +675,7 @@ class PFFLApp {
                 </div>
             `;
             // Fire async fetch
-            this.fetchTruePlayerStats(this.viewingWeek, cachedP.team, cachedP.name).then(stats => {
+            this.fetchTruePlayerStats(this.viewingWeek, cachedP.team, cachedP.name, cachedP.pos).then(stats => {
                 const container = document.getElementById("true-stats-container");
                 if (container) {
                     if (stats) {
