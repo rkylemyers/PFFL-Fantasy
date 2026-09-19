@@ -96,11 +96,11 @@ class PFFLApp {
     
     // 2. Dynamic Dripping Blood Engine
     // We will call this periodically to ensure any newly rendered panels get the blood treatment
-    setInterval(() => this.applyBloodDrips(), 2000);
+    // Blood effect removed by user request
   }
 
   applyBloodDrips() {
-    document.querySelectorAll('.team-panel, .settings-card, .trend-item').forEach(panel => {
+    return; // Blood effect removed\n    document.querySelectorAll('.team-panel, .settings-card, .trend-item').forEach(panel => {
         if (panel.hasAttribute('data-organic-blood')) return;
         panel.setAttribute('data-organic-blood', 'true');
         
