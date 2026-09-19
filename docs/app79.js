@@ -482,7 +482,8 @@ class PFFLApp {
               rec: 0, recYds: 0, recTD: 0,
               fumblesLost: 0,
               sacks: 0, defInt: 0, defTD: 0,
-              fgMade: 0
+              fgMade: 0,
+              twoPtPass: 0, twoPtRush: 0, twoPtRec: 0
           };
           
           const normalizeName = (name) => name.replace(/[^a-zA-Z]/g, '').toLowerCase();
@@ -518,6 +519,9 @@ class PFFLApp {
                               if (key === 'sacks') playerStats.sacks = val;
                               if (key === 'defensiveTouchdowns') playerStats.defTD = val;
                               if (key === 'fieldGoalsMade') playerStats.fgMade = val;
+                              if (key === 'twoPointPasses') playerStats.twoPtPass = val;
+                              if (key === 'twoPointRushes') playerStats.twoPtRush = val;
+                              if (key === 'twoPointReceptions') playerStats.twoPtRec = val;
                           }
                       }
                   }
@@ -535,56 +539,65 @@ class PFFLApp {
       let breakdowns = [];
       let calculatedPts = 0;
       
-      const addB = (pts, desc) => {
+      const addRow = (icon, title, mathStr, pts) => {
           calculatedPts += pts;
-          breakdowns.push(`<div style="margin-bottom: 4px; display: flex; justify-content: space-between;">
-              <span style="color: var(--accent-green);">+${pts.toFixed(1)}</span>
-              <span style="color: var(--text-muted);">${desc}</span>
-          </div>`);
-      };
-      const subB = (pts, desc) => {
-          calculatedPts += pts;
-          breakdowns.push(`<div style="margin-bottom: 4px; display: flex; justify-content: space-between;">
-              <span style="color: var(--accent-red);">${pts.toFixed(1)}</span>
-              <span style="color: var(--text-muted);">${desc}</span>
-          </div>`);
+          let isPos = pts >= 0;
+          let ptsStr = isPos ? `+${pts.toFixed(1)}` : pts.toFixed(1);
+          let colorClass = isPos ? 'var(--accent-green)' : 'var(--accent-red)';
+          
+          breakdowns.push(`
+            <div style="display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.04);">
+               <div style="font-size: 1.4rem; width: 32px; text-align: center; margin-right: 12px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));">${icon}</div>
+               <div style="flex-grow: 1;">
+                  <div style="color: #e0e0e0; font-size: 0.95rem; font-weight: 600; margin-bottom: 2px;">${title}</div>
+                  <div style="color: var(--text-muted); font-size: 0.8rem;">${mathStr}</div>
+               </div>
+               <div style="font-family: 'Courier New', monospace; font-size: 1.1rem; font-weight: 700; color: ${colorClass};">${ptsStr}</div>
+            </div>
+          `);
       };
 
-      if (stats.passYds > 0) addB(stats.passYds * 0.05, `1 pt per 20 Pass Yds applied to ${stats.passYds} Pass Yds`);
-      if (stats.passTD > 0) addB(stats.passTD * 6, `6 pts per Pass TD applied to ${stats.passTD} Pass TDs`);
-      if (stats.passInt > 0) subB(stats.passInt * -3, `-3 pts per Pass INT applied to ${stats.passInt} INTs`);
+      if (stats.passYds !== 0) addRow('🚀', 'Passing Yards', `1 pt per 20 Yds • ${stats.passYds} Yds`, stats.passYds * 0.05);
+      if (stats.passTD > 0) addRow('🎯', 'Passing Touchdowns', `6 pts per TD • ${stats.passTD} TDs`, stats.passTD * 6);
+      if (stats.passInt > 0) addRow('❌', 'Interceptions Thrown', `-3 pts per INT • ${stats.passInt} INTs`, stats.passInt * -3);
+      if (stats.twoPtPass > 0) addRow('✌️', '2-Point Pass', `2 pts per Conv • ${stats.twoPtPass} Convs`, stats.twoPtPass * 2);
       
-      if (stats.rushYds > 0) addB(stats.rushYds * 0.1, `1 pt per 10 Rush Yds applied to ${stats.rushYds} Rush Yds`);
-      if (stats.rushTD > 0) addB(stats.rushTD * 6, `6 pts per Rush TD applied to ${stats.rushTD} Rush TDs`);
+      if (stats.rushYds !== 0) addRow('🏃', 'Rushing Yards', `1 pt per 10 Yds • ${stats.rushYds} Yds`, stats.rushYds * 0.1);
+      if (stats.rushTD > 0) addRow('💥', 'Rushing Touchdowns', `6 pts per TD • ${stats.rushTD} TDs`, stats.rushTD * 6);
+      if (stats.twoPtRush > 0) addRow('✌️', '2-Point Rush', `2 pts per Conv • ${stats.twoPtRush} Convs`, stats.twoPtRush * 2);
       
-      if (stats.rec > 0) addB(stats.rec * 1.0, `1 pt per Reception applied to ${stats.rec} Rec`);
-      if (stats.recYds > 0) addB(stats.recYds * 0.1, `1 pt per 10 Rec Yds applied to ${stats.recYds} Rec Yds`);
-      if (stats.recTD > 0) addB(stats.recTD * 6, `6 pts per Rec TD applied to ${stats.recTD} Rec TDs`);
+      if (stats.rec > 0) addRow('👐', 'Receptions (PPR)', `1 pt per Catch • ${stats.rec} Rec`, stats.rec * 1.0);
+      if (stats.recYds !== 0) addRow('📏', 'Receiving Yards', `1 pt per 10 Yds • ${stats.recYds} Yds`, stats.recYds * 0.1);
+      if (stats.recTD > 0) addRow('✨', 'Receiving Touchdowns', `6 pts per TD • ${stats.recTD} TDs`, stats.recTD * 6);
+      if (stats.twoPtRec > 0) addRow('✌️', '2-Point Reception', `2 pts per Conv • ${stats.twoPtRec} Convs`, stats.twoPtRec * 2);
       
-      if (stats.fumblesLost > 0) subB(stats.fumblesLost * -2, `-2 pts per Fumble Lost applied to ${stats.fumblesLost} Fumbles`);
+      if (stats.fumblesLost > 0) addRow('🚫', 'Fumbles Lost', `-2 pts per Fumble • ${stats.fumblesLost} Fumbles`, stats.fumblesLost * -2);
       
-      if (pos === 'DST' || pos === 'DEF') {
-          if (stats.defTD > 0) addB(stats.defTD * 6, `6 pts per Def TD applied to ${stats.defTD} Def TDs`);
-          if (stats.defInt > 0) addB(stats.defInt * 3, `3 pts per Def INT applied to ${stats.defInt} INTs`);
-          if (stats.sacks > 0) addB(stats.sacks * 2, `2 pts per Sack applied to ${stats.sacks} Sacks`);
-      }
+      // Defensive Stats map beautifully even if a WR somehow scores them
+      if (stats.defTD > 0) addRow('🛡️', 'Defensive Touchdowns', `6 pts per TD • ${stats.defTD} TDs`, stats.defTD * 6);
+      if (stats.defInt > 0) addRow('🦅', 'Defensive Interceptions', `3 pts per INT • ${stats.defInt} INTs`, stats.defInt * 3);
+      if (stats.sacks > 0) addRow('💥', 'Defensive Sacks', `2 pts per Sack • ${stats.sacks} Sacks`, stats.sacks * 2);
       
       if (pos === 'K') {
-          if (totalScore > 0) addB(totalScore, `Total Field Goal & PAT Points applied`);
+          if (totalScore > 0) addRow('🦵', 'Kicking Points', `Total Field Goals & PATs`, totalScore);
       }
 
       let diff = totalScore - calculatedPts;
       if (Math.abs(diff) > 0.05 && pos !== 'K') {
-          if (diff > 0) addB(diff, `Misc Bonuses / 2pt Conversions`);
-          else subB(diff, `Misc Penalties`);
+          if (diff > 0) addRow('⭐', 'Misc Bonuses', `PFFL League Custom Rules`, diff);
+          else addRow('⚠️', 'Misc Penalties', `PFFL League Custom Rules`, diff);
       }
 
-      let html = `<div style="font-size: 0.85rem; color: var(--text-main); font-family: monospace; background: rgba(0,0,0,0.25); padding: 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);">`;
+      let html = `<div style="background: linear-gradient(145deg, rgba(20,25,35,0.9), rgba(15,18,25,0.95)); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 16px; margin-top: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">`;
       html += breakdowns.join('');
-      html += `<div style="margin-top: 8px; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 8px; display: flex; justify-content: space-between; font-weight: bold; font-size: 1rem;">
-          <span>Total PFFL Points</span>
-          <span style="color: white;">${totalScore.toFixed(2)}</span>
-      </div>`;
+      
+      let totalColor = totalScore >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+      html += `
+          <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed rgba(255,255,255,0.2); display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 1.1rem; font-weight: 800; color: white;">Total PFFL Points</span>
+              <span style="font-family: 'Courier New', monospace; font-size: 1.3rem; font-weight: 800; color: ${totalColor}; text-shadow: 0 0 10px ${totalColor};">${totalScore.toFixed(2)}</span>
+          </div>
+      `;
       html += `</div>`;
       
       return html;
@@ -648,7 +661,7 @@ class PFFLApp {
                 const container = document.getElementById("true-stats-container");
                 if (container) {
                     if (stats) {
-                        container.innerHTML = `<h4 style="margin: 0 0 10px 0; color: var(--accent-red);">Real Statline Breakdown</h4>` + this.buildTrueStatlineHTML(stats, cachedP.scoreNum, cachedP.pos);
+                        container.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;"><h4 style="margin: 0; color: var(--accent-red); font-weight: 800; text-transform: uppercase; letter-spacing: 1px; font-size: 0.85rem;">NFL Boxscore Breakdown</h4><span style="font-size: 0.7rem; color: var(--text-muted); background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;">PFFL SCORING</span></div>` + this.buildTrueStatlineHTML(stats, cachedP.scoreNum, cachedP.pos);
                     } else {
                         container.innerHTML = `<h4 style="margin: 0 0 10px 0; color: var(--accent-red);">Real Statline Breakdown</h4><p style="font-size: 0.9rem; color: var(--text-muted); font-style: italic;">Could not locate NFL boxscore for this player.</p>`;
                     }
