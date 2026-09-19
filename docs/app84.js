@@ -5,11 +5,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 class PFFLApp {
   getHeadshotURL(cleanName) {
-      if (!cleanName || !this.headshotsMap) return 'https://a.espncdn.com/i/headshots/nfl/players/full/fallback.png';
+      if (!cleanName || !this.headshotsMap) return 'https://sleepercdn.com/images/v2/icons/player_default.webp';
       const searchName = cleanName.replace(/[^a-zA-Z]/g, '').toLowerCase();
-      const espnId = this.headshotsMap[searchName];
-      if (espnId) return `https://a.espncdn.com/i/headshots/nfl/players/full/${espnId}.png`;
-      return 'https://a.espncdn.com/i/headshots/nfl/players/full/fallback.png';
+      const sleeperId = this.headshotsMap[searchName];
+      if (sleeperId) return `https://sleepercdn.com/content/nfl/players/thumb/${sleeperId}.jpg`;
+      return 'https://sleepercdn.com/images/v2/icons/player_default.webp';
   }
 
   constructor() {
@@ -613,7 +613,7 @@ class PFFLApp {
     if (!modal) return;
     
     const hsUrl = this.getHeadshotURL(name);
-    document.getElementById('modal-player-name').innerHTML = `<div style="display: flex; align-items: center; gap: 12px;"><img src="${hsUrl}" onerror="this.style.display='none'" style="width: 40px; height: 40px; object-fit: cover; border-radius: 50%; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.5);"><span>${name}</span></div>`;
+    document.getElementById('modal-player-name').innerHTML = `<div style="display: flex; align-items: center; gap: 12px;"><img src="${hsUrl}" onerror="this.onerror=null; this.src='https://sleepercdn.com/images/v2/icons/player_default.webp'" style="width: 40px; height: 40px; object-fit: cover; border-radius: 50%; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.5);"><span>${name}</span></div>`;
     
     let gameStatus = this.getRealOpponentText(team);
     
@@ -1823,7 +1823,7 @@ class PFFLApp {
       <div class="play-item" data-id="${p.id}" style="cursor: pointer; position: relative; ${isLive ? 'border-left: 2px solid var(--accent-yellow);' : ''}" onclick="window.PFFL.showPlayerModal('${p.id}', '${p.name}', '${p.team}', '${p.pos}', '${p.scoreStr}', '${(p.scoreNum + 10.5).toFixed(1)}', '${isLive}')">
         <div class="play-item-left">
           <span class="pos-pill ${p.displaySlot}">${p.displaySlot}</span>
-          <img src="${hsUrl}" onerror="this.src='https://a.espncdn.com/i/headshots/nfl/players/full/fallback.png'" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); margin-left: 8px; margin-right: 4px;">
+          <img src="${hsUrl}" onerror="this.onerror=null; this.src='https://sleepercdn.com/images/v2/icons/player_default.webp'" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); margin-left: 8px; margin-right: 4px;">
           <div class="play-details">
             <span class="player-name-line" style="${isLive ? 'color: var(--text-main);' : ''}">
               ${p.name} <span class="player-subtext" style="${isLive ? 'color: var(--accent-cyan);' : ''}">(${p.team})</span>
@@ -1891,7 +1891,7 @@ class PFFLApp {
       return `
       <div class="play-item ${p.isBigPlay ? 'big-play-item' : ''}" data-id="${p.playerId}">
         <div class="play-item-left" style="align-items: center; gap: 10px;">
-          <img src="${hsUrl}" onerror="this.src='https://a.espncdn.com/i/headshots/nfl/players/full/fallback.png'" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+          <img src="${hsUrl}" onerror="this.onerror=null; this.src='https://sleepercdn.com/images/v2/icons/player_default.webp'" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
           <div class="play-details">
             <span class="player-name-line" style="color: var(--accent-cyan)">
               ${p.playerName} <span class="pts-delta-badge ${p.pts && p.pts.toString().startsWith('+') ? 'pos' : 'neutral'}">${p.pts}</span> <span class="play-time-stamp">(${p.timeStamp})</span> ${p.isTD ? '<span class="big-play-alert-tag" style="background: var(--accent-red); color: white;">🚨 BIG PLAY ALERT</span>' : (p.isBigPlay ? '<span class="big-play-alert-tag">🚨 BIG PLAY ALERT</span>' : '')}
