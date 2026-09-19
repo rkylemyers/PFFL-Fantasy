@@ -418,7 +418,7 @@ class PFFLApp {
               pts: `+${pts}`,
               isPos: true,
               isTD: isTD,
-              isBigPlay: isBigPlay || yds >= 20,
+              isBigPlay: isBig || yds >= 20,
               desc: desc,
               timeStamp: `Sun ${baseHour}:${baseMin < 10 ? '0' : ''}${baseMin} PM`,
               timeSortWeight: (7 * 10000) + (baseHour * 60) + baseMin
