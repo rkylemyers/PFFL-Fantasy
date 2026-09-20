@@ -32,42 +32,64 @@ export default async function handler(req, res) {
 
   try {
     // ── STEP 1: Login to MFL ──────────────────────────────────────────────────
-    // Use POST as MFL recommends. Don't follow redirects so we always read the raw XML.
-    const loginResp = await fetch('https://api.myfantasyleague.com/2026/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `USERNAME=${encodeURIComponent(username)}&PASSWORD=${encodeURIComponent(password)}&XML=1`,
-      redirect: 'manual'
+    // MFL API Login Endpoint: https://api.myfantasyleague.com/2026/login?USERNAME=...&PASSWORD=...&XML=1
+    // We follow redirects (or handle both GET and POST) to guarantee we read the XML status or cookie header.
+    let loginUrl = `https://api.myfantasyleague.com/2026/login?USERNAME=${encodeURIComponent(username)}&PASSWORD=${encodeURIComponent(password)}&XML=1`;
+    let loginResp = await fetch(loginUrl, {
+      method: 'GET',
+      headers: { 'User-Agent': 'Mozilla/5.0 (PFFL-Fantasy)' }
     });
-    
-    // If MFL redirects (3xx), grab the Set-Cookie header from the redirect response
-    let mflCookieHeader = loginResp.headers.get('set-cookie') || '';
-    const loginXml = loginResp.type === 'opaqueredirect' ? '' : await loginResp.text();
-    
-    console.log('MFL login status:', loginResp.status, loginResp.type);
-    console.log('MFL response body:', loginXml.substring(0, 300));
-    console.log('MFL cookie header:', mflCookieHeader.substring(0, 100));
 
-    // Parse the cookie name/value from the XML response body
-    // Expected success: <status cookie_name="MFL_USER_ID" cookie_value="xxxx" ...>
-    const cookieNameMatch = loginXml.match(/cookie_name="([^"]+)"/);
-    const cookieValueMatch = loginXml.match(/cookie_value="([^"]+)"/);
+    let loginXml = await loginResp.text();
+    let setCookieHeader = loginResp.headers.get('set-cookie') || '';
 
-    if (!cookieNameMatch || !cookieValueMatch) {
-      // Login failed — return the raw error from MFL
+    // Check XML response body for: <status cookie_name="MFL_USER_ID" cookie_value="..."/>
+    let cookieNameMatch = loginXml.match(/cookie_name="([^"]+)"/);
+    let cookieValueMatch = loginXml.match(/cookie_value="([^"]+)"/);
+    let authCookie = '';
+
+    if (cookieNameMatch && cookieValueMatch) {
+      authCookie = `${cookieNameMatch[1]}=${encodeURIComponent(cookieValueMatch[1])}`;
+    } else if (setCookieHeader && setCookieHeader.includes('MFL_USER_ID=')) {
+      const match = setCookieHeader.match(/MFL_USER_ID=([^;]+)/);
+      if (match) {
+        authCookie = `MFL_USER_ID=${match[1]}`;
+      }
+    }
+
+    // If still no cookie, also try with league-specific server www44 as fallback
+    if (!authCookie) {
+      try {
+        const leagueUrl = `https://www44.myfantasyleague.com/2026/login?L=44108&USERNAME=${encodeURIComponent(username)}&PASSWORD=${encodeURIComponent(password)}&XML=1`;
+        const leagueResp = await fetch(leagueUrl, {
+          method: 'GET',
+          headers: { 'User-Agent': 'Mozilla/5.0 (PFFL-Fantasy)' }
+        });
+        const leagueXml = await leagueResp.text();
+        const lCookieNameMatch = leagueXml.match(/cookie_name="([^"]+)"/);
+        const lCookieValueMatch = leagueXml.match(/cookie_value="([^"]+)"/);
+        if (lCookieNameMatch && lCookieValueMatch) {
+          authCookie = `${lCookieNameMatch[1]}=${encodeURIComponent(lCookieValueMatch[1])}`;
+          loginXml = leagueXml;
+        } else {
+          // If leagueXml gave an error, keep it for diagnostics
+          if (leagueXml.includes('<error>')) loginXml = leagueXml;
+        }
+      } catch (err) {
+        console.warn('League login fallback error:', err);
+      }
+    }
+
+    if (!authCookie) {
       const mflError = loginXml.match(/<error>([^<]+)<\/error>/);
-      const errMsg = mflError ? mflError[1] : `Unexpected MFL response format`;
+      const errMsg = mflError ? mflError[1] : 'Invalid credentials or unexpected response from MFL';
       return res.status(401).json({
         success: false,
         error: errMsg,
         raw: loginXml,
-        hint: 'Use your MFL Account password (not your Franchise Access Code). Your username is your MFL login email or username.'
+        hint: 'MFL requires your master MFL Account credentials (often your email or username used on myfantasyleague.com).'
       });
     }
-
-    const cookieName = cookieNameMatch[1];
-    const cookieValue = cookieValueMatch[1];
-    const authCookie = `${cookieName}=${encodeURIComponent(cookieValue)}`;
 
     // ── STEP 2: Handle different actions ─────────────────────────────────────
     if (action === 'test_auth') {
