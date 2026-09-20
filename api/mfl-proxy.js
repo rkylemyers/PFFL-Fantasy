@@ -98,48 +98,80 @@ export default async function handler(req, res) {
     }
 
     if (action === 'submit_lineup') {
-      if (!leagueId || !franchiseId || !week || !starters) {
+      if (!leagueId || !week || !starters) {
         return res.status(400).json({ success: false, error: 'Missing lineup parameters.' });
       }
 
-      // Build the XML lineup payload
-      // MFL expects the same format as its export: starters listed by player ID
-      // Slot mapping: QB, RB, RB, WR, WR, TE, FLEX, K, Def
-      const mflSlotMap = {
-        QB: 'QB', RB1: 'RB', RB2: 'RB',
-        WR1: 'WR', WR2: 'WR', TE: 'TE',
-        FLEX: 'WR', K: 'PK', DST: 'Def'
-      };
+      // MFL API for TYPE=lineup expects a comma-separated list of starter player IDs:
+      // Endpoint: https://api.myfantasyleague.com/2026/import?TYPE=lineup&L=${leagueId}&W=${week}&STARTERS=${starterList}&XML=1
+      // If commissioner or submitting on franchise behalf, include FRANCHISE_ID=${franchiseId}
+      const starterIds = starters.map(p => p.id).join(',');
 
-      const starterXml = starters.map(p =>
-        `  <player id="${p.id}" slot="${mflSlotMap[p.slot] || p.slot}"/>`
-      ).join('\n');
+      const params = new URLSearchParams({
+        TYPE: 'lineup',
+        L: String(leagueId),
+        W: String(week),
+        STARTERS: starterIds,
+        XML: '1'
+      });
+      if (franchiseId) {
+        params.append('FRANCHISE_ID', String(franchiseId));
+      }
 
-      const benchXml = (bench || []).map(p =>
-        `  <player id="${p.id}" slot="nonstarter"/>`
-      ).join('\n');
-
-      const lineupXml = `<?xml version="1.0" encoding="utf-8"?>\n<lineup>\n${starterXml}\n${benchXml}\n</lineup>`;
-
-      const importUrl = `https://api.myfantasyleague.com/2026/import?TYPE=lineup&L=${leagueId}&FRANCHISE_ID=${franchiseId}&WEEK=${week}`;
-      const importResp = await fetch(importUrl, {
+      // Try primary API endpoint first
+      let importUrl = `https://api.myfantasyleague.com/2026/import?${params.toString()}`;
+      let importResp = await fetch(importUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Cookie': authCookie
-        },
-        body: `DATA=${encodeURIComponent(lineupXml)}`
+          'Cookie': authCookie,
+          'User-Agent': 'Mozilla/5.0 (PFFL-Fantasy)'
+        }
       });
 
-      const importText = await importResp.text();
-      const importSuccess = importText.includes('<result>success</result>') ||
-                            importText.includes('status="success"') ||
-                            importText.includes('<status value="success"');
+      let importText = await importResp.text();
+
+      // If redirected or error, try the league-specific host (e.g. www44)
+      if (!importText || importText.includes('<error>') || importResp.status >= 400) {
+        try {
+          const leagueImportUrl = `https://www44.myfantasyleague.com/2026/import?${params.toString()}`;
+          const lResp = await fetch(leagueImportUrl, {
+            method: 'POST',
+            headers: {
+              'Cookie': authCookie,
+              'User-Agent': 'Mozilla/5.0 (PFFL-Fantasy)'
+            }
+          });
+          const lText = await lResp.text();
+          if (lText && !lText.includes('<error>')) {
+            importText = lText;
+          } else if (lText.includes('<error>')) {
+            importText = lText; // capture league server error
+          }
+        } catch (err) {
+          console.warn('League import fallback failed:', err);
+        }
+      }
+
+      // Check success conditions
+      const hasError = importText.includes('<error>');
+      const isSuccess = !hasError && (
+        importText.includes('<status') ||
+        importText.includes('OK') ||
+        importText.includes('success') ||
+        importText.includes('<result>success')
+      );
+
+      let extractedError = null;
+      if (hasError) {
+        const errMatch = importText.match(/<error>([^<]+)<\/error>/);
+        extractedError = errMatch ? errMatch[1] : 'MFL rejected lineup submission.';
+      }
 
       return res.status(200).json({
-        success: importSuccess,
+        success: isSuccess,
+        error: extractedError,
         raw: importText,
-        message: importSuccess ? 'Lineup submitted successfully!' : 'MFL returned an error. Check raw response.',
+        message: isSuccess ? 'Lineup submitted successfully to MFL!' : (extractedError || 'MFL returned an error.')
       });
     }
 
